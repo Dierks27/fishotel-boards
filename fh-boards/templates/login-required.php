@@ -6,5 +6,7 @@
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
-
-// TODO: Render "Please log in" message.
+?>
+<div class="fhb-login-required">
+    <p>Please <a href="<?php echo esc_url( wp_login_url( get_permalink() ) ); ?>">log in</a> to access the FisHotel Boards.</p>
+</div>

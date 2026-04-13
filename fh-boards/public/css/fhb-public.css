@@ -2,4 +2,342 @@
  * FH Boards – Public styles.
  */
 
-/* TODO */
+/* Board wrapper */
+.fhb-board-wrap,
+.fhb-single-topic-wrap {
+    max-width: 800px;
+    margin: 0 auto;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+}
+
+/* Board header */
+.fhb-board-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.fhb-board-header h2 {
+    margin: 0;
+    font-size: 1.5em;
+}
+
+/* Buttons */
+.fhb-btn {
+    display: inline-block;
+    padding: 8px 16px;
+    background: #0073aa;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    text-decoration: none;
+    line-height: 1.4;
+}
+
+.fhb-btn:hover {
+    background: #005a87;
+    color: #fff;
+}
+
+.fhb-btn-primary {
+    background: #0073aa;
+}
+
+.fhb-btn-subscribed {
+    background: #666;
+}
+
+.fhb-btn-subscribed:hover {
+    background: #555;
+}
+
+.fhb-btn-small {
+    padding: 4px 10px;
+    font-size: 12px;
+}
+
+.fhb-btn-yes {
+    background: #46b450;
+    margin-left: 8px;
+}
+
+.fhb-btn-yes:hover {
+    background: #3a9a42;
+}
+
+/* Topic list */
+.fhb-topic-list {
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.fhb-topic-row {
+    padding: 14px 18px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.15s;
+}
+
+.fhb-topic-row:last-child {
+    border-bottom: none;
+}
+
+.fhb-topic-row:hover {
+    background: #f9f9f9;
+}
+
+.fhb-topic-row.fhb-closed {
+    opacity: 0.7;
+}
+
+.fhb-topic-title {
+    margin-bottom: 4px;
+}
+
+.fhb-topic-title a {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+    text-decoration: none;
+}
+
+.fhb-topic-title a:hover {
+    color: #0073aa;
+}
+
+.fhb-topic-meta {
+    font-size: 13px;
+    color: #666;
+}
+
+.fhb-topic-meta span {
+    margin-right: 14px;
+}
+
+/* Badges */
+.fhb-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    vertical-align: middle;
+    margin-left: 6px;
+}
+
+.fhb-badge-closed {
+    background: #dc3232;
+    color: #fff;
+}
+
+/* Single topic */
+.fhb-back-link {
+    margin-bottom: 16px;
+}
+
+.fhb-back-link a {
+    color: #0073aa;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.fhb-back-link a:hover {
+    text-decoration: underline;
+}
+
+.fhb-topic-header {
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.fhb-topic-header h2 {
+    margin: 0;
+    display: inline;
+}
+
+/* Posts (topic & replies) */
+.fhb-post {
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid #e8e8e8;
+    border-radius: 4px;
+    background: #fafafa;
+}
+
+.fhb-original-post {
+    border-left: 4px solid #0073aa;
+}
+
+.fhb-post-author {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.fhb-post-author img {
+    border-radius: 50%;
+}
+
+.fhb-post-date {
+    color: #888;
+    font-size: 12px;
+}
+
+.fhb-post-content {
+    font-size: 15px;
+    line-height: 1.6;
+    color: #333;
+}
+
+.fhb-post-content p:last-child {
+    margin-bottom: 0;
+}
+
+/* Subscribe area */
+.fhb-subscribe-area {
+    margin: 20px 0;
+    padding: 14px;
+    background: #f5f5f5;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.fhb-subscribe-message {
+    margin-top: 10px;
+    padding: 8px 14px;
+    border-radius: 3px;
+    font-size: 14px;
+}
+
+.fhb-subscribe-message.fhb-msg-info {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.fhb-subscribe-message.fhb-msg-success {
+    background: #d4edda;
+    color: #155724;
+}
+
+/* Forms */
+.fhb-form {
+    margin: 20px 0;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background: #fff;
+}
+
+.fhb-form-group {
+    margin-bottom: 14px;
+}
+
+.fhb-form-group label {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.fhb-form-group input[type="text"],
+.fhb-form-group textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.fhb-form-group textarea {
+    resize: vertical;
+}
+
+.fhb-form-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.fhb-form-message {
+    margin-top: 10px;
+    padding: 8px 14px;
+    border-radius: 3px;
+    font-size: 14px;
+}
+
+.fhb-form-message.fhb-msg-error {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.fhb-form-message.fhb-msg-success {
+    background: #d4edda;
+    color: #155724;
+}
+
+/* Closed notice */
+.fhb-closed-notice {
+    padding: 12px;
+    background: #f8d7da;
+    color: #721c24;
+    border-radius: 4px;
+    text-align: center;
+}
+
+/* Pagination */
+.fhb-pagination {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+/* No topics message */
+.fhb-no-topics {
+    text-align: center;
+    color: #888;
+    padding: 40px 0;
+    font-size: 16px;
+}
+
+/* Login required */
+.fhb-login-required {
+    text-align: center;
+    padding: 40px 20px;
+    background: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    max-width: 500px;
+    margin: 20px auto;
+}
+
+.fhb-login-required a {
+    color: #0073aa;
+    font-weight: 600;
+}
+
+/* Error */
+.fhb-error {
+    color: #dc3232;
+    font-weight: 600;
+}
+
+/* New topic toggle cancel */
+.fhb-new-topic-cancel {
+    background: #ccc;
+    color: #333;
+}
+
+.fhb-new-topic-cancel:hover {
+    background: #bbb;
+    color: #333;
+}

@@ -2,4 +2,32 @@
  * FH Boards – Admin styles.
  */
 
-/* TODO */
+.fhb-admin-wrap h1 {
+    margin-bottom: 16px;
+}
+
+.fhb-admin-actions form {
+    display: inline-block;
+    margin-right: 4px;
+}
+
+.fhb-admin-subscriber-block {
+    margin-bottom: 30px;
+}
+
+.fhb-admin-subscriber-block h3 {
+    margin-bottom: 8px;
+}
+
+.fhb-admin-subscriber-block h3 small {
+    color: #888;
+    font-weight: normal;
+}
+
+.fhb-admin-notify-form .form-table {
+    margin-bottom: 10px;
+}
+
+.fhb-admin-notify-form select {
+    min-width: 350px;
+}

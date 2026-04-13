@@ -10,6 +10,221 @@ if ( ! defined( 'ABSPATH' ) ) {
 class FHB_Ajax {
 
     public static function init() {
-        // TODO: Register AJAX actions.
+        // Logged-in only actions.
+        add_action( 'wp_ajax_fhb_new_topic', array( __CLASS__, 'new_topic' ) );
+        add_action( 'wp_ajax_fhb_new_reply', array( __CLASS__, 'new_reply' ) );
+        add_action( 'wp_ajax_fhb_subscribe', array( __CLASS__, 'subscribe' ) );
+        add_action( 'wp_ajax_fhb_unsubscribe', array( __CLASS__, 'unsubscribe' ) );
+        add_action( 'wp_ajax_fhb_enable_notifications', array( __CLASS__, 'enable_notifications' ) );
+    }
+
+    /* ------------------------------------------------------------------
+     * Create a new topic.
+     * ----------------------------------------------------------------*/
+    public static function new_topic() {
+        check_ajax_referer( 'fhb_nonce', 'nonce' );
+
+        if ( ! is_user_logged_in() ) {
+            wp_send_json_error( array( 'message' => 'You must be logged in.' ) );
+        }
+
+        $title   = isset( $_POST['topic_title'] ) ? sanitize_text_field( wp_unslash( $_POST['topic_title'] ) ) : '';
+        $content = isset( $_POST['topic_content'] ) ? sanitize_textarea_field( wp_unslash( $_POST['topic_content'] ) ) : '';
+
+        if ( empty( $title ) || empty( $content ) ) {
+            wp_send_json_error( array( 'message' => 'Title and message are required.' ) );
+        }
+
+        $now = current_time( 'mysql', true );
+
+        $topic_id = wp_insert_post( array(
+            'post_type'    => 'fhb_topic',
+            'post_title'   => $title,
+            'post_content' => $content,
+            'post_status'  => 'publish',
+            'post_author'  => get_current_user_id(),
+        ), true );
+
+        if ( is_wp_error( $topic_id ) ) {
+            wp_send_json_error( array( 'message' => 'Could not create topic.' ) );
+        }
+
+        update_post_meta( $topic_id, '_fhb_reply_count', 0 );
+        update_post_meta( $topic_id, '_fhb_last_activity', $now );
+        update_post_meta( $topic_id, '_fhb_subscribers', array() );
+
+        wp_send_json_success( array(
+            'message'  => 'Topic created.',
+            'topic_id' => $topic_id,
+        ) );
+    }
+
+    /* ------------------------------------------------------------------
+     * Post a reply.
+     * ----------------------------------------------------------------*/
+    public static function new_reply() {
+        check_ajax_referer( 'fhb_nonce', 'nonce' );
+
+        if ( ! is_user_logged_in() ) {
+            wp_send_json_error( array( 'message' => 'You must be logged in.' ) );
+        }
+
+        $topic_id = isset( $_POST['topic_id'] ) ? absint( $_POST['topic_id'] ) : 0;
+        $content  = isset( $_POST['reply_content'] ) ? sanitize_textarea_field( wp_unslash( $_POST['reply_content'] ) ) : '';
+
+        if ( ! $topic_id || empty( $content ) ) {
+            wp_send_json_error( array( 'message' => 'Topic ID and reply content are required.' ) );
+        }
+
+        // Verify topic exists and is open.
+        $topic = get_post( $topic_id );
+        if ( ! $topic || 'fhb_topic' !== $topic->post_type ) {
+            wp_send_json_error( array( 'message' => 'Topic not found.' ) );
+        }
+
+        if ( get_post_meta( $topic_id, '_fhb_closed', true ) === '1' ) {
+            wp_send_json_error( array( 'message' => 'This topic is closed.' ) );
+        }
+
+        $reply_id = wp_insert_post( array(
+            'post_type'    => 'fhb_reply',
+            'post_content' => $content,
+            'post_status'  => 'publish',
+            'post_author'  => get_current_user_id(),
+        ), true );
+
+        if ( is_wp_error( $reply_id ) ) {
+            wp_send_json_error( array( 'message' => 'Could not post reply.' ) );
+        }
+
+        update_post_meta( $reply_id, '_fhb_topic_id', $topic_id );
+
+        // Update topic meta.
+        $now = current_time( 'mysql', true );
+        $count = absint( get_post_meta( $topic_id, '_fhb_reply_count', true ) );
+        update_post_meta( $topic_id, '_fhb_reply_count', $count + 1 );
+        update_post_meta( $topic_id, '_fhb_last_activity', $now );
+
+        // Queue notifications for this topic (processed by cron).
+        update_post_meta( $topic_id, '_fhb_pending_notification', '1' );
+
+        // Build reply HTML for live-append.
+        $author_id   = get_current_user_id();
+        $author_name = get_the_author_meta( 'display_name', $author_id );
+        $avatar      = get_avatar( $author_id, 40 );
+        $date        = get_the_date( '', $reply_id );
+        $time        = get_the_time( '', $reply_id );
+
+        $html  = '<div class="fhb-post fhb-reply-post" data-post-id="' . esc_attr( $reply_id ) . '">';
+        $html .= '<div class="fhb-post-author">' . $avatar;
+        $html .= '<strong>' . esc_html( $author_name ) . '</strong>';
+        $html .= '<span class="fhb-post-date">' . esc_html( $date ) . ' at ' . esc_html( $time ) . '</span>';
+        $html .= '</div>';
+        $html .= '<div class="fhb-post-content">' . wp_kses_post( wpautop( $content ) ) . '</div>';
+        $html .= '</div>';
+
+        wp_send_json_success( array(
+            'message'  => 'Reply posted.',
+            'reply_id' => $reply_id,
+            'html'     => $html,
+        ) );
+    }
+
+    /* ------------------------------------------------------------------
+     * Subscribe to a topic.
+     * ----------------------------------------------------------------*/
+    public static function subscribe() {
+        check_ajax_referer( 'fhb_nonce', 'nonce' );
+
+        if ( ! is_user_logged_in() ) {
+            wp_send_json_error( array( 'message' => 'You must be logged in.' ) );
+        }
+
+        $topic_id = isset( $_POST['topic_id'] ) ? absint( $_POST['topic_id'] ) : 0;
+        $user_id  = get_current_user_id();
+
+        if ( ! $topic_id ) {
+            wp_send_json_error( array( 'message' => 'Invalid topic.' ) );
+        }
+
+        // Check if user has email notifications enabled.
+        $notifs_on = get_user_meta( $user_id, 'fhb_email_notifications', true ) === '1';
+
+        if ( ! $notifs_on ) {
+            wp_send_json_error( array(
+                'message'      => 'You have notifications turned off. Would you like to turn them on?',
+                'needs_opt_in' => true,
+            ) );
+        }
+
+        self::add_subscriber( $topic_id, $user_id );
+
+        wp_send_json_success( array( 'message' => 'You are now subscribed to this topic.' ) );
+    }
+
+    /* ------------------------------------------------------------------
+     * Unsubscribe from a topic.
+     * ----------------------------------------------------------------*/
+    public static function unsubscribe() {
+        check_ajax_referer( 'fhb_nonce', 'nonce' );
+
+        if ( ! is_user_logged_in() ) {
+            wp_send_json_error( array( 'message' => 'You must be logged in.' ) );
+        }
+
+        $topic_id = isset( $_POST['topic_id'] ) ? absint( $_POST['topic_id'] ) : 0;
+        $user_id  = get_current_user_id();
+
+        if ( ! $topic_id ) {
+            wp_send_json_error( array( 'message' => 'Invalid topic.' ) );
+        }
+
+        $subscribers = get_post_meta( $topic_id, '_fhb_subscribers', true );
+        if ( is_array( $subscribers ) ) {
+            $subscribers = array_values( array_diff( $subscribers, array( $user_id ) ) );
+            update_post_meta( $topic_id, '_fhb_subscribers', $subscribers );
+        }
+
+        wp_send_json_success( array( 'message' => 'You have been unsubscribed.' ) );
+    }
+
+    /* ------------------------------------------------------------------
+     * Enable notifications and subscribe in one step.
+     * ----------------------------------------------------------------*/
+    public static function enable_notifications() {
+        check_ajax_referer( 'fhb_nonce', 'nonce' );
+
+        if ( ! is_user_logged_in() ) {
+            wp_send_json_error( array( 'message' => 'You must be logged in.' ) );
+        }
+
+        $topic_id = isset( $_POST['topic_id'] ) ? absint( $_POST['topic_id'] ) : 0;
+        $user_id  = get_current_user_id();
+
+        if ( ! $topic_id ) {
+            wp_send_json_error( array( 'message' => 'Invalid topic.' ) );
+        }
+
+        // Turn on email notifications for this user.
+        update_user_meta( $user_id, 'fhb_email_notifications', '1' );
+
+        // Subscribe them.
+        self::add_subscriber( $topic_id, $user_id );
+
+        wp_send_json_success( array( 'message' => 'Notifications enabled and you are now subscribed.' ) );
+    }
+
+    /* ------------------------------------------------------------------
+     * Helper: add a user to a topic's subscriber list.
+     * ----------------------------------------------------------------*/
+    private static function add_subscriber( $topic_id, $user_id ) {
+        $subscribers = get_post_meta( $topic_id, '_fhb_subscribers', true );
+        if ( ! is_array( $subscribers ) ) {
+            $subscribers = array();
+        }
+        if ( ! in_array( $user_id, $subscribers, true ) ) {
+            $subscribers[] = $user_id;
+            update_post_meta( $topic_id, '_fhb_subscribers', $subscribers );
+        }
     }
 }
