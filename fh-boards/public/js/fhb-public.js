@@ -112,7 +112,11 @@
                         var rc  = t.reply_count === 1 ? '1 reply' : t.reply_count + ' replies';
                         html += '<div class="fhb-topic-row' + cls + '">';
                         html += '<div class="fhb-topic-title">';
-                        html += '<a href="' + fhbBuildTopicUrl(t.post_id) + '">' + fhbHighlight(t.title, query) + '</a>';
+                        var topicUrl = fhbBuildTopicUrl(t.post_id);
+                        if (t.reply_id) {
+                            topicUrl += '#fhb-post-' + t.reply_id;
+                        }
+                        html += '<a href="' + topicUrl + '">' + fhbHighlight(t.title, query) + '</a>';
                         if (t.is_closed) html += ' <span class="fhb-badge fhb-badge-closed">Closed</span>';
                         html += '</div>';
                         if (t.snippet) {
