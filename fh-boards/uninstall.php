@@ -21,6 +21,17 @@ if ( $delete_data ) {
     $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}" . FHB_Constants::TABLE_THREAD_VISITS );
     $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}" . FHB_Constants::TABLE_NOTIFICATIONS );
 
+    // Delete all fhb_subject posts.
+    $subjects = get_posts( array(
+        'post_type'      => FHB_Constants::POST_TYPE_SUBJECT,
+        'posts_per_page' => -1,
+        'post_status'    => 'any',
+        'fields'         => 'ids',
+    ) );
+    foreach ( $subjects as $subject_id ) {
+        wp_delete_post( $subject_id, true );
+    }
+
     // Delete all fhb_topic posts and their meta.
     $topics = get_posts( array(
         'post_type'      => FHB_Constants::POST_TYPE_TOPIC,

@@ -51,11 +51,15 @@
      * ----------------------------------------------------------------*/
     var fhbSearchTimer = null;
 
-    function fhbBuildTopicUrl(postId) {
+    function fhbBuildTopicUrl(postId, subjectId) {
         var url = window.location.href.split('?')[0];
         var params = new URLSearchParams(window.location.search);
+        params.delete('fhb_subject');
         params.delete('fhb_topic');
         params.delete('fhb_paged');
+        if (subjectId) {
+            params.set('fhb_subject', subjectId);
+        }
         params.set('fhb_topic', postId);
         return url + '?' + params.toString();
     }
@@ -110,12 +114,12 @@
                     $.each(res.data.topics, function (i, t) {
                         var cls = t.is_closed ? ' fhb-closed' : '';
                         var rc  = t.reply_count === 1 ? '1 reply' : t.reply_count + ' replies';
-                        html += '<div class="fhb-topic-row' + cls + '">';
-                        html += '<div class="fhb-topic-title">';
-                        var topicUrl = fhbBuildTopicUrl(t.post_id);
+                        var topicUrl = fhbBuildTopicUrl(t.post_id, t.subject_id);
                         if (t.reply_id) {
                             topicUrl += '#fhb-post-' + t.reply_id;
                         }
+                        html += '<div class="fhb-topic-row' + cls + '">';
+                        html += '<div class="fhb-topic-title">';
                         html += '<a href="' + topicUrl + '">' + fhbHighlight(t.title, query) + '</a>';
                         if (t.is_closed) html += ' <span class="fhb-badge fhb-badge-closed">Closed</span>';
                         html += '</div>';
@@ -123,6 +127,9 @@
                             html += '<div class="fhb-search-snippet">' + fhbHighlight(t.snippet, query) + '</div>';
                         }
                         html += '<div class="fhb-topic-meta">';
+                        if (t.subject_name) {
+                            html += '<span class="fhb-topic-subject">' + $('<span>').text(t.subject_name).html() + '</span>';
+                        }
                         html += '<span class="fhb-topic-author">by ' + $('<span>').text(t.author_name).html() + '</span>';
                         html += '<span class="fhb-topic-replies">' + rc + '</span>';
                         html += '</div></div>';
@@ -171,6 +178,7 @@
         $.post(fhb_ajax.ajax_url, {
             action:        'fhb_new_topic',
             nonce:         fhb_ajax.nonce,
+            subject_id:    $form.find('[name="subject_id"]').val(),
             topic_title:   $form.find('[name="topic_title"]').val(),
             topic_content: $form.find('[name="topic_content"]').val()
         }, function (res) {

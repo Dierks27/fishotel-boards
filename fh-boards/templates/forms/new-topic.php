@@ -9,6 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <form class="fhb-form fhb-form-new-topic" data-action="fhb_new_topic">
     <?php wp_nonce_field( FHB_Constants::NONCE_ACTION, 'fhb_nonce_field' ); ?>
+    <input type="hidden" name="subject_id" value="<?php echo esc_attr( $subject->ID ); ?>" />
     <div class="fhb-form-group">
         <label for="fhb-topic-title">Title</label>
         <input type="text" id="fhb-topic-title" name="topic_title" required maxlength="200" placeholder="Topic title&hellip;" />

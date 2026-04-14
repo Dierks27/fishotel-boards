@@ -10,11 +10,15 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-$board_url = remove_query_arg( array( 'fhb_topic', 'fhb_paged' ) );
+$subject_id  = get_post_meta( $topic->ID, FHB_Constants::META_SUBJECT_ID, true );
+$base_url    = remove_query_arg( array( 'fhb_subject', 'fhb_topic', 'fhb_paged' ) );
+$back_url    = $subject_id ? add_query_arg( 'fhb_subject', $subject_id, $base_url ) : $base_url;
+$subject     = $subject_id ? get_post( $subject_id ) : null;
+$back_label  = $subject ? $subject->post_title : 'Boards';
 ?>
 <div class="fhb-single-topic-wrap">
     <div class="fhb-back-link">
-        <a href="<?php echo esc_url( $board_url ); ?>">&laquo; Back to Boards</a>
+        <a href="<?php echo esc_url( $back_url ); ?>">&laquo; Back to <?php echo esc_html( $back_label ); ?></a>
     </div>
 
     <div class="fhb-topic-header">
