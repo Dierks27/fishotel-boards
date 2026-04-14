@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Get all topics that have subscribers.
 $topics = get_posts( array(
-    'post_type'      => 'fhb_topic',
+    'post_type'      => FHB_Constants::POST_TYPE_TOPIC,
     'post_status'    => 'publish',
     'posts_per_page' => -1,
     'orderby'        => 'date',
@@ -22,8 +22,8 @@ $topics = get_posts( array(
     <?php if ( ! empty( $topics ) ) : ?>
         <?php foreach ( $topics as $topic ) : ?>
             <?php
-            $subscribers = get_post_meta( $topic->ID, '_fhb_subscribers', true );
-            if ( ! is_array( $subscribers ) || empty( $subscribers ) ) {
+            $subscribers = FHB_Constants::get_subscribers( $topic->ID );
+            if ( empty( $subscribers ) ) {
                 continue;
             }
             ?>
@@ -46,7 +46,7 @@ $topics = get_posts( array(
                             if ( ! $user ) {
                                 continue;
                             }
-                            $notifs_on = get_user_meta( $user_id, 'fhb_email_notifications', true ) === '1';
+                            $notifs_on = get_user_meta( $user_id, FHB_Constants::USERMETA_EMAIL_NOTIFICATIONS, true ) === '1';
                             ?>
                             <tr>
                                 <td><?php echo esc_html( $user_id ); ?></td>

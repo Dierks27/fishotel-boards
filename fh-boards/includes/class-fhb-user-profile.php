@@ -20,7 +20,7 @@ class FHB_User_Profile {
      * Render the checkbox on the user profile page.
      */
     public static function render_field( $user ) {
-        $value = get_user_meta( $user->ID, 'fhb_email_notifications', true );
+        $value = get_user_meta( $user->ID, FHB_Constants::USERMETA_EMAIL_NOTIFICATIONS, true );
         ?>
         <h3>FH Boards</h3>
         <table class="form-table">
@@ -50,7 +50,7 @@ class FHB_User_Profile {
             return;
         }
 
-        $value = isset( $_POST['fhb_email_notifications'] ) ? '1' : '0';
-        update_user_meta( $user_id, 'fhb_email_notifications', $value );
+        $value = isset( $_POST[FHB_Constants::USERMETA_EMAIL_NOTIFICATIONS] ) ? '1' : '0';
+        update_user_meta( $user_id, FHB_Constants::USERMETA_EMAIL_NOTIFICATIONS, $value );
     }
 }

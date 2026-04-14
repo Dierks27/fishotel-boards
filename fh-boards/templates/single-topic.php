@@ -27,7 +27,7 @@ $board_url = remove_query_arg( array( 'fhb_topic', 'fhb_paged' ) );
     <!-- Topic meta bar -->
     <?php
     $op_author_name = get_the_author_meta( 'display_name', $topic->post_author );
-    $reply_count    = absint( get_post_meta( $topic->ID, '_fhb_reply_count', true ) );
+    $reply_count    = absint( get_post_meta( $topic->ID, FHB_Constants::META_REPLY_COUNT, true ) );
     $status_label   = $is_closed ? '<span class="fhb-status-closed">Closed</span>' : '<span class="fhb-status-open">Open</span>';
     ?>
     <div class="fhb-topic-meta-bar">
@@ -39,22 +39,12 @@ $board_url = remove_query_arg( array( 'fhb_topic', 'fhb_paged' ) );
 
     <!-- Original post -->
     <div class="fhb-post fhb-original-post" data-post-id="<?php echo esc_attr( $topic->ID ); ?>">
-        <div class="fhb-post-author">
-            <span class="fhb-fish-icon">&#x1F41F;</span>
-            <strong><?php echo esc_html( $op_author_name ); ?></strong>
-            <span class="fhb-post-date"><?php echo esc_html( get_the_date( '', $topic ) ); ?> at <?php echo esc_html( get_the_time( '', $topic ) ); ?></span>
-        </div>
+        <?php fhb_render_post_author( $op_author_name, get_the_date( '', $topic ), get_the_time( '', $topic ) ); ?>
         <div class="fhb-post-content">
             <?php echo wp_kses_post( wpautop( $topic->post_content ) ); ?>
         </div>
-        <?php
-        $op_created  = get_the_date( 'U', $topic );
-        $op_modified = get_post_modified_time( 'U', false, $topic );
-        if ( $op_modified && ( $op_modified - $op_created ) > 60 ) :
-        ?>
-            <span class="fhb-edited-stamp">(edited <?php echo esc_html( get_the_modified_date( '', $topic ) ); ?>)</span>
-        <?php endif; ?>
-        <?php if ( (int) $topic->post_author === get_current_user_id() || current_user_can( 'manage_options' ) ) : ?>
+        <?php fhb_render_edited_stamp( $topic ); ?>
+        <?php if ( FHB_Constants::user_can_edit( $topic ) ) : ?>
             <div class="fhb-post-actions"><button type="button" class="fhb-edit-btn">Edit</button></div>
         <?php endif; ?>
     </div>
@@ -64,22 +54,12 @@ $board_url = remove_query_arg( array( 'fhb_topic', 'fhb_paged' ) );
         <div class="fhb-replies">
             <?php while ( $replies->have_posts() ) : $replies->the_post(); ?>
                 <div class="fhb-post fhb-reply-post" data-post-id="<?php echo esc_attr( get_the_ID() ); ?>">
-                    <div class="fhb-post-author">
-                        <span class="fhb-fish-icon">&#x1F41F;</span>
-                        <strong><?php echo esc_html( get_the_author() ); ?></strong>
-                        <span class="fhb-post-date"><?php echo esc_html( get_the_date() ); ?> at <?php echo esc_html( get_the_time() ); ?></span>
-                    </div>
+                    <?php fhb_render_post_author( get_the_author(), get_the_date(), get_the_time() ); ?>
                     <div class="fhb-post-content">
                         <?php echo wp_kses_post( wpautop( get_the_content() ) ); ?>
                     </div>
-                    <?php
-                    $r_created  = get_the_date( 'U' );
-                    $r_modified = get_the_modified_date( 'U' );
-                    if ( $r_modified && ( $r_modified - $r_created ) > 60 ) :
-                    ?>
-                        <span class="fhb-edited-stamp">(edited <?php echo esc_html( get_the_modified_date() ); ?>)</span>
-                    <?php endif; ?>
-                    <?php if ( (int) get_the_author_meta( 'ID' ) === get_current_user_id() || current_user_can( 'manage_options' ) ) : ?>
+                    <?php fhb_render_edited_stamp( get_post() ); ?>
+                    <?php if ( FHB_Constants::user_can_edit( get_post() ) ) : ?>
                         <div class="fhb-post-actions"><button type="button" class="fhb-edit-btn">Edit</button></div>
                     <?php endif; ?>
                 </div>

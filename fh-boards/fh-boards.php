@@ -18,6 +18,8 @@ define( 'FHB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 /* ------------------------------------------------------------------
  * Includes
  * ----------------------------------------------------------------*/
+require_once FHB_PLUGIN_DIR . 'includes/class-fhb-constants.php';
+require_once FHB_PLUGIN_DIR . 'includes/fhb-helpers.php';
 require_once FHB_PLUGIN_DIR . 'includes/class-fhb-activator.php';
 require_once FHB_PLUGIN_DIR . 'includes/class-fhb-post-types.php';
 require_once FHB_PLUGIN_DIR . 'includes/class-fhb-shortcode.php';
@@ -72,7 +74,7 @@ function fhb_enqueue_public_assets() {
     );
     wp_localize_script( 'fhb-public', 'fhb_ajax', array(
         'ajax_url' => admin_url( 'admin-ajax.php' ),
-        'nonce'    => wp_create_nonce( 'fhb_nonce' ),
+        'nonce'    => wp_create_nonce( FHB_Constants::NONCE_ACTION ),
     ) );
 }
 add_action( 'wp_enqueue_scripts', 'fhb_enqueue_public_assets' );

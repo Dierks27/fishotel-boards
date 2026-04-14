@@ -21,26 +21,76 @@ class FHB_Ajax {
     }
 
     /* ------------------------------------------------------------------
-     * Create a new topic.
+     * Shared helpers
      * ----------------------------------------------------------------*/
-    public static function new_topic() {
-        check_ajax_referer( 'fhb_nonce', 'nonce' );
+
+    /**
+     * Verify nonce and login for every AJAX request.
+     */
+    private static function verify_request() {
+        check_ajax_referer( FHB_Constants::NONCE_ACTION, 'nonce' );
 
         if ( ! is_user_logged_in() ) {
             wp_send_json_error( array( 'message' => 'You must be logged in.' ) );
         }
+    }
+
+    /**
+     * Send an error if any of the given values are empty.
+     */
+    private static function require_fields( $fields, $message ) {
+        foreach ( $fields as $value ) {
+            if ( empty( $value ) ) {
+                wp_send_json_error( array( 'message' => $message ) );
+            }
+        }
+    }
+
+    /**
+     * Build a short text snippet around a search query match.
+     */
+    private static function extract_snippet( $content, $query, $context = 40, $length = 100 ) {
+        $text = strip_tags( $content );
+        $pos  = mb_stripos( $text, $query );
+
+        if ( false === $pos ) {
+            return '';
+        }
+
+        $start   = max( 0, $pos - $context );
+        $snippet = mb_substr( $text, $start, $length );
+        if ( $start > 0 ) {
+            $snippet = '...' . $snippet;
+        }
+        return trim( $snippet ) . '...';
+    }
+
+    /**
+     * Add a user to a topic's subscriber list.
+     */
+    private static function add_subscriber( $topic_id, $user_id ) {
+        $subscribers = FHB_Constants::get_subscribers( $topic_id );
+        if ( ! in_array( $user_id, $subscribers, true ) ) {
+            $subscribers[] = $user_id;
+            update_post_meta( $topic_id, FHB_Constants::META_SUBSCRIBERS, $subscribers );
+        }
+    }
+
+    /* ------------------------------------------------------------------
+     * Create a new topic.
+     * ----------------------------------------------------------------*/
+    public static function new_topic() {
+        self::verify_request();
 
         $title   = isset( $_POST['topic_title'] ) ? sanitize_text_field( wp_unslash( $_POST['topic_title'] ) ) : '';
         $content = isset( $_POST['topic_content'] ) ? sanitize_textarea_field( wp_unslash( $_POST['topic_content'] ) ) : '';
 
-        if ( empty( $title ) || empty( $content ) ) {
-            wp_send_json_error( array( 'message' => 'Title and message are required.' ) );
-        }
+        self::require_fields( array( $title, $content ), 'Title and message are required.' );
 
         $now = current_time( 'mysql', true );
 
         $topic_id = wp_insert_post( array(
-            'post_type'    => 'fhb_topic',
+            'post_type'    => FHB_Constants::POST_TYPE_TOPIC,
             'post_title'   => $title,
             'post_content' => $content,
             'post_status'  => 'publish',
@@ -51,9 +101,9 @@ class FHB_Ajax {
             wp_send_json_error( array( 'message' => 'Could not create topic.' ) );
         }
 
-        update_post_meta( $topic_id, '_fhb_reply_count', 0 );
-        update_post_meta( $topic_id, '_fhb_last_activity', $now );
-        update_post_meta( $topic_id, '_fhb_subscribers', array() );
+        update_post_meta( $topic_id, FHB_Constants::META_REPLY_COUNT, 0 );
+        update_post_meta( $topic_id, FHB_Constants::META_LAST_ACTIVITY, $now );
+        update_post_meta( $topic_id, FHB_Constants::META_SUBSCRIBERS, array() );
 
         wp_send_json_success( array(
             'message'  => 'Topic created.',
@@ -65,31 +115,25 @@ class FHB_Ajax {
      * Post a reply.
      * ----------------------------------------------------------------*/
     public static function new_reply() {
-        check_ajax_referer( 'fhb_nonce', 'nonce' );
-
-        if ( ! is_user_logged_in() ) {
-            wp_send_json_error( array( 'message' => 'You must be logged in.' ) );
-        }
+        self::verify_request();
 
         $topic_id = isset( $_POST['topic_id'] ) ? absint( $_POST['topic_id'] ) : 0;
         $content  = isset( $_POST['reply_content'] ) ? sanitize_textarea_field( wp_unslash( $_POST['reply_content'] ) ) : '';
 
-        if ( ! $topic_id || empty( $content ) ) {
-            wp_send_json_error( array( 'message' => 'Topic ID and reply content are required.' ) );
-        }
+        self::require_fields( array( $topic_id, $content ), 'Topic ID and reply content are required.' );
 
         // Verify topic exists and is open.
         $topic = get_post( $topic_id );
-        if ( ! $topic || 'fhb_topic' !== $topic->post_type ) {
+        if ( ! $topic || FHB_Constants::POST_TYPE_TOPIC !== $topic->post_type ) {
             wp_send_json_error( array( 'message' => 'Topic not found.' ) );
         }
 
-        if ( get_post_meta( $topic_id, '_fhb_closed', true ) === '1' ) {
+        if ( FHB_Constants::is_topic_closed( $topic_id ) ) {
             wp_send_json_error( array( 'message' => 'This topic is closed.' ) );
         }
 
         $reply_id = wp_insert_post( array(
-            'post_type'    => 'fhb_reply',
+            'post_type'    => FHB_Constants::POST_TYPE_REPLY,
             'post_content' => $content,
             'post_status'  => 'publish',
             'post_author'  => get_current_user_id(),
@@ -99,16 +143,16 @@ class FHB_Ajax {
             wp_send_json_error( array( 'message' => 'Could not post reply.' ) );
         }
 
-        update_post_meta( $reply_id, '_fhb_topic_id', $topic_id );
+        update_post_meta( $reply_id, FHB_Constants::META_TOPIC_ID, $topic_id );
 
         // Update topic meta.
         $now = current_time( 'mysql', true );
-        $count = absint( get_post_meta( $topic_id, '_fhb_reply_count', true ) );
-        update_post_meta( $topic_id, '_fhb_reply_count', $count + 1 );
-        update_post_meta( $topic_id, '_fhb_last_activity', $now );
+        $count = absint( get_post_meta( $topic_id, FHB_Constants::META_REPLY_COUNT, true ) );
+        update_post_meta( $topic_id, FHB_Constants::META_REPLY_COUNT, $count + 1 );
+        update_post_meta( $topic_id, FHB_Constants::META_LAST_ACTIVITY, $now );
 
         // Queue notifications for this topic (processed by cron).
-        update_post_meta( $topic_id, '_fhb_pending_notification', '1' );
+        update_post_meta( $topic_id, FHB_Constants::META_PENDING_NOTIFICATION, '1' );
 
         // Build reply HTML for live-append.
         $author_id   = get_current_user_id();
@@ -137,27 +181,20 @@ class FHB_Ajax {
      * Edit a post (topic or reply) inline.
      * ----------------------------------------------------------------*/
     public static function edit_post() {
-        check_ajax_referer( 'fhb_nonce', 'nonce' );
-
-        if ( ! is_user_logged_in() ) {
-            wp_send_json_error( array( 'message' => 'You must be logged in.' ) );
-        }
+        self::verify_request();
 
         $post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
         $content = isset( $_POST['content'] ) ? sanitize_textarea_field( wp_unslash( $_POST['content'] ) ) : '';
 
-        if ( ! $post_id || empty( $content ) ) {
-            wp_send_json_error( array( 'message' => 'Post ID and content are required.' ) );
-        }
+        self::require_fields( array( $post_id, $content ), 'Post ID and content are required.' );
 
         $post = get_post( $post_id );
-        if ( ! $post || ! in_array( $post->post_type, array( 'fhb_topic', 'fhb_reply' ), true ) ) {
+        if ( ! $post || ! in_array( $post->post_type, array( FHB_Constants::POST_TYPE_TOPIC, FHB_Constants::POST_TYPE_REPLY ), true ) ) {
             wp_send_json_error( array( 'message' => 'Post not found.' ) );
         }
 
         // Only the author or an admin can edit.
-        $current_user = get_current_user_id();
-        if ( (int) $post->post_author !== $current_user && ! current_user_can( 'manage_options' ) ) {
+        if ( ! FHB_Constants::user_can_edit( $post ) ) {
             wp_send_json_error( array( 'message' => 'You do not have permission to edit this post.' ) );
         }
 
@@ -186,11 +223,7 @@ class FHB_Ajax {
      * Search topics (titles, topic content, and reply content).
      * ----------------------------------------------------------------*/
     public static function search() {
-        check_ajax_referer( 'fhb_nonce', 'nonce' );
-
-        if ( ! is_user_logged_in() ) {
-            wp_send_json_error( array( 'message' => 'You must be logged in.' ) );
-        }
+        self::verify_request();
 
         $query = isset( $_POST['query'] ) ? sanitize_text_field( wp_unslash( $_POST['query'] ) ) : '';
 
@@ -202,7 +235,7 @@ class FHB_Ajax {
 
         // 1. Search topic titles and content.
         $topic_results = new WP_Query( array(
-            'post_type'      => 'fhb_topic',
+            'post_type'      => FHB_Constants::POST_TYPE_TOPIC,
             'post_status'    => 'publish',
             's'              => $query,
             'posts_per_page' => 20,
@@ -214,14 +247,14 @@ class FHB_Ajax {
 
         // 2. Search reply content and map back to parent topics.
         $reply_results = new WP_Query( array(
-            'post_type'      => 'fhb_reply',
+            'post_type'      => FHB_Constants::POST_TYPE_REPLY,
             'post_status'    => 'publish',
             's'              => $query,
             'posts_per_page' => 50,
             'fields'         => 'ids',
         ) );
         foreach ( $reply_results->posts as $rid ) {
-            $parent_tid = get_post_meta( $rid, '_fhb_topic_id', true );
+            $parent_tid = get_post_meta( $rid, FHB_Constants::META_TOPIC_ID, true );
             if ( $parent_tid && 'publish' === get_post_status( $parent_tid ) ) {
                 $found_topic_ids[ (int) $parent_tid ] = true;
             }
@@ -233,7 +266,7 @@ class FHB_Ajax {
 
         if ( ! empty( $topic_ids ) ) {
             $ordered = new WP_Query( array(
-                'post_type'      => 'fhb_topic',
+                'post_type'      => FHB_Constants::POST_TYPE_TOPIC,
                 'post_status'    => 'publish',
                 'post__in'       => $topic_ids,
                 'posts_per_page' => 20,
@@ -242,39 +275,24 @@ class FHB_Ajax {
 
             while ( $ordered->have_posts() ) {
                 $ordered->the_post();
-                $tid     = get_the_ID();
-                $snippet = '';
+                $tid = get_the_ID();
 
                 // Try to find a matching snippet from topic content.
-                $content = get_the_content();
-                $pos     = mb_stripos( $content, $query );
-                if ( false !== $pos ) {
-                    $start   = max( 0, $pos - 40 );
-                    $snippet = mb_substr( strip_tags( $content ), $start, 100 );
-                    if ( $start > 0 ) $snippet = '...' . $snippet;
-                    $snippet = trim( $snippet ) . '...';
-                }
+                $snippet = self::extract_snippet( get_the_content(), $query );
 
                 // If no match in topic content, check replies.
                 if ( empty( $snippet ) ) {
                     $matching_replies = new WP_Query( array(
-                        'post_type'      => 'fhb_reply',
+                        'post_type'      => FHB_Constants::POST_TYPE_REPLY,
                         'post_status'    => 'publish',
                         's'              => $query,
                         'posts_per_page' => 1,
-                        'meta_key'       => '_fhb_topic_id',
+                        'meta_key'       => FHB_Constants::META_TOPIC_ID,
                         'meta_value'     => $tid,
                     ) );
                     if ( $matching_replies->have_posts() ) {
                         $matching_replies->the_post();
-                        $reply_text = strip_tags( get_the_content() );
-                        $rpos       = mb_stripos( $reply_text, $query );
-                        if ( false !== $rpos ) {
-                            $start   = max( 0, $rpos - 40 );
-                            $snippet = mb_substr( $reply_text, $start, 100 );
-                            if ( $start > 0 ) $snippet = '...' . $snippet;
-                            $snippet = trim( $snippet ) . '...';
-                        }
+                        $snippet = self::extract_snippet( get_the_content(), $query );
                     }
                     // Restore outer loop post.
                     $ordered->the_post();
@@ -285,8 +303,8 @@ class FHB_Ajax {
                     'title'        => get_the_title(),
                     'author_name'  => get_the_author(),
                     'date'         => get_the_date(),
-                    'reply_count'  => absint( get_post_meta( $tid, '_fhb_reply_count', true ) ),
-                    'is_closed'    => get_post_meta( $tid, '_fhb_closed', true ) === '1',
+                    'reply_count'  => absint( get_post_meta( $tid, FHB_Constants::META_REPLY_COUNT, true ) ),
+                    'is_closed'    => FHB_Constants::is_topic_closed( $tid ),
                     'snippet'      => $snippet,
                 );
             }
@@ -300,11 +318,7 @@ class FHB_Ajax {
      * Subscribe to a topic.
      * ----------------------------------------------------------------*/
     public static function subscribe() {
-        check_ajax_referer( 'fhb_nonce', 'nonce' );
-
-        if ( ! is_user_logged_in() ) {
-            wp_send_json_error( array( 'message' => 'You must be logged in.' ) );
-        }
+        self::verify_request();
 
         $topic_id = isset( $_POST['topic_id'] ) ? absint( $_POST['topic_id'] ) : 0;
         $user_id  = get_current_user_id();
@@ -314,7 +328,7 @@ class FHB_Ajax {
         }
 
         // Check if user has email notifications enabled.
-        $notifs_on = get_user_meta( $user_id, 'fhb_email_notifications', true ) === '1';
+        $notifs_on = get_user_meta( $user_id, FHB_Constants::USERMETA_EMAIL_NOTIFICATIONS, true ) === '1';
 
         if ( ! $notifs_on ) {
             wp_send_json_error( array(
@@ -332,11 +346,7 @@ class FHB_Ajax {
      * Unsubscribe from a topic.
      * ----------------------------------------------------------------*/
     public static function unsubscribe() {
-        check_ajax_referer( 'fhb_nonce', 'nonce' );
-
-        if ( ! is_user_logged_in() ) {
-            wp_send_json_error( array( 'message' => 'You must be logged in.' ) );
-        }
+        self::verify_request();
 
         $topic_id = isset( $_POST['topic_id'] ) ? absint( $_POST['topic_id'] ) : 0;
         $user_id  = get_current_user_id();
@@ -345,11 +355,9 @@ class FHB_Ajax {
             wp_send_json_error( array( 'message' => 'Invalid topic.' ) );
         }
 
-        $subscribers = get_post_meta( $topic_id, '_fhb_subscribers', true );
-        if ( is_array( $subscribers ) ) {
-            $subscribers = array_values( array_diff( $subscribers, array( $user_id ) ) );
-            update_post_meta( $topic_id, '_fhb_subscribers', $subscribers );
-        }
+        $subscribers = FHB_Constants::get_subscribers( $topic_id );
+        $subscribers = array_values( array_diff( $subscribers, array( $user_id ) ) );
+        update_post_meta( $topic_id, FHB_Constants::META_SUBSCRIBERS, $subscribers );
 
         wp_send_json_success( array( 'message' => 'You have been unsubscribed.' ) );
     }
@@ -358,11 +366,7 @@ class FHB_Ajax {
      * Enable notifications and subscribe in one step.
      * ----------------------------------------------------------------*/
     public static function enable_notifications() {
-        check_ajax_referer( 'fhb_nonce', 'nonce' );
-
-        if ( ! is_user_logged_in() ) {
-            wp_send_json_error( array( 'message' => 'You must be logged in.' ) );
-        }
+        self::verify_request();
 
         $topic_id = isset( $_POST['topic_id'] ) ? absint( $_POST['topic_id'] ) : 0;
         $user_id  = get_current_user_id();
@@ -372,25 +376,11 @@ class FHB_Ajax {
         }
 
         // Turn on email notifications for this user.
-        update_user_meta( $user_id, 'fhb_email_notifications', '1' );
+        update_user_meta( $user_id, FHB_Constants::USERMETA_EMAIL_NOTIFICATIONS, '1' );
 
         // Subscribe them.
         self::add_subscriber( $topic_id, $user_id );
 
         wp_send_json_success( array( 'message' => 'Notifications enabled and you are now subscribed.' ) );
-    }
-
-    /* ------------------------------------------------------------------
-     * Helper: add a user to a topic's subscriber list.
-     * ----------------------------------------------------------------*/
-    private static function add_subscriber( $topic_id, $user_id ) {
-        $subscribers = get_post_meta( $topic_id, '_fhb_subscribers', true );
-        if ( ! is_array( $subscribers ) ) {
-            $subscribers = array();
-        }
-        if ( ! in_array( $user_id, $subscribers, true ) ) {
-            $subscribers[] = $user_id;
-            update_post_meta( $topic_id, '_fhb_subscribers', $subscribers );
-        }
     }
 }

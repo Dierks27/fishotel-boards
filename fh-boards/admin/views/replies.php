@@ -13,7 +13,7 @@ $paged = isset( $_GET['paged'] ) ? absint( $_GET['paged'] ) : 1;
 $filter_topic = isset( $_GET['topic_id'] ) ? absint( $_GET['topic_id'] ) : 0;
 
 $args = array(
-    'post_type'      => 'fhb_reply',
+    'post_type'      => FHB_Constants::POST_TYPE_REPLY,
     'post_status'    => 'any',
     'posts_per_page' => 30,
     'paged'          => $paged,
@@ -22,7 +22,7 @@ $args = array(
 );
 
 if ( $filter_topic ) {
-    $args['meta_key']   = '_fhb_topic_id';
+    $args['meta_key']   = FHB_Constants::META_TOPIC_ID;
     $args['meta_value'] = $filter_topic;
 }
 
@@ -59,7 +59,7 @@ $replies = new WP_Query( $args );
                 <?php while ( $replies->have_posts() ) : $replies->the_post(); ?>
                     <?php
                     $reply_id   = get_the_ID();
-                    $topic_id   = get_post_meta( $reply_id, '_fhb_topic_id', true );
+                    $topic_id   = get_post_meta( $reply_id, FHB_Constants::META_TOPIC_ID, true );
                     $topic_title = $topic_id ? get_the_title( $topic_id ) : '(unknown)';
                     $excerpt    = wp_trim_words( get_the_content(), 20, '&hellip;' );
                     ?>

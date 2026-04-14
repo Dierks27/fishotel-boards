@@ -44,11 +44,11 @@ class FHB_Shortcode {
         $paged = isset( $_GET['fhb_paged'] ) ? absint( $_GET['fhb_paged'] ) : 1;
 
         $topics = new WP_Query( array(
-            'post_type'      => 'fhb_topic',
+            'post_type'      => FHB_Constants::POST_TYPE_TOPIC,
             'post_status'    => 'publish',
             'posts_per_page' => 20,
             'paged'          => $paged,
-            'meta_key'       => '_fhb_last_activity',
+            'meta_key'       => FHB_Constants::META_LAST_ACTIVITY,
             'orderby'        => 'meta_value',
             'order'          => 'DESC',
         ) );
@@ -62,7 +62,7 @@ class FHB_Shortcode {
     private static function render_single_topic( $topic_id ) {
         $topic = get_post( $topic_id );
 
-        if ( ! $topic || 'fhb_topic' !== $topic->post_type || 'publish' !== $topic->post_status ) {
+        if ( ! $topic || FHB_Constants::POST_TYPE_TOPIC !== $topic->post_type || 'publish' !== $topic->post_status ) {
             echo '<p class="fhb-error">Topic not found.</p>';
             return;
         }
@@ -71,10 +71,10 @@ class FHB_Shortcode {
         self::record_visit( $topic_id );
 
         $replies = new WP_Query( array(
-            'post_type'      => 'fhb_reply',
+            'post_type'      => FHB_Constants::POST_TYPE_REPLY,
             'post_status'    => 'publish',
             'posts_per_page' => -1,
-            'meta_key'       => '_fhb_topic_id',
+            'meta_key'       => FHB_Constants::META_TOPIC_ID,
             'meta_value'     => $topic_id,
             'orderby'        => 'date',
             'order'          => 'ASC',
@@ -83,8 +83,8 @@ class FHB_Shortcode {
         // Check subscription status.
         $user_id       = get_current_user_id();
         $is_subscribed = self::is_subscribed( $user_id, $topic_id );
-        $notifs_on     = get_user_meta( $user_id, 'fhb_email_notifications', true ) === '1';
-        $is_closed     = get_post_meta( $topic_id, '_fhb_closed', true ) === '1';
+        $notifs_on     = get_user_meta( $user_id, FHB_Constants::USERMETA_EMAIL_NOTIFICATIONS, true ) === '1';
+        $is_closed     = FHB_Constants::is_topic_closed( $topic_id );
 
         include FHB_PLUGIN_DIR . 'templates/single-topic.php';
     }
@@ -118,10 +118,7 @@ class FHB_Shortcode {
      * Check if a user is subscribed to a topic.
      */
     public static function is_subscribed( $user_id, $topic_id ) {
-        $subscribers = get_post_meta( $topic_id, '_fhb_subscribers', true );
-        if ( ! is_array( $subscribers ) ) {
-            return false;
-        }
+        $subscribers = FHB_Constants::get_subscribers( $topic_id );
         return in_array( $user_id, $subscribers, true );
     }
 }

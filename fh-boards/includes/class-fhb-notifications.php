@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class FHB_Notifications {
 
     public static function init() {
-        add_action( 'fhb_process_notifications', array( __CLASS__, 'process_queue' ) );
+        add_action( FHB_Constants::CRON_HOOK, array( __CLASS__, 'process_queue' ) );
     }
 
     /**
@@ -23,17 +23,17 @@ class FHB_Notifications {
      */
     public static function process_queue() {
         $topics = get_posts( array(
-            'post_type'      => 'fhb_topic',
+            'post_type'      => FHB_Constants::POST_TYPE_TOPIC,
             'post_status'    => 'publish',
             'posts_per_page' => -1,
-            'meta_key'       => '_fhb_pending_notification',
+            'meta_key'       => FHB_Constants::META_PENDING_NOTIFICATION,
             'meta_value'     => '1',
             'fields'         => 'ids',
         ) );
 
         foreach ( $topics as $topic_id ) {
             self::process_topic( $topic_id );
-            delete_post_meta( $topic_id, '_fhb_pending_notification' );
+            delete_post_meta( $topic_id, FHB_Constants::META_PENDING_NOTIFICATION );
         }
     }
 
@@ -41,8 +41,8 @@ class FHB_Notifications {
      * Process notifications for a single topic.
      */
     public static function process_topic( $topic_id ) {
-        $subscribers = get_post_meta( $topic_id, '_fhb_subscribers', true );
-        if ( ! is_array( $subscribers ) || empty( $subscribers ) ) {
+        $subscribers = FHB_Constants::get_subscribers( $topic_id );
+        if ( empty( $subscribers ) ) {
             return;
         }
 
@@ -51,28 +51,29 @@ class FHB_Notifications {
             return;
         }
 
+        // Fetch the latest reply ONCE, outside the loop.
+        $latest_reply = get_posts( array(
+            'post_type'      => FHB_Constants::POST_TYPE_REPLY,
+            'post_status'    => 'publish',
+            'posts_per_page' => 1,
+            'meta_key'       => FHB_Constants::META_TOPIC_ID,
+            'meta_value'     => $topic_id,
+            'orderby'        => 'date',
+            'order'          => 'DESC',
+            'fields'         => 'ids',
+        ) );
+        $latest_reply_author = ! empty( $latest_reply )
+            ? (int) get_post_field( 'post_author', $latest_reply[0] )
+            : 0;
+
         foreach ( $subscribers as $user_id ) {
             // Skip the author of the latest reply (they don't need a notification).
-            $latest_reply = get_posts( array(
-                'post_type'      => 'fhb_reply',
-                'post_status'    => 'publish',
-                'posts_per_page' => 1,
-                'meta_key'       => '_fhb_topic_id',
-                'meta_value'     => $topic_id,
-                'orderby'        => 'date',
-                'order'          => 'DESC',
-                'fields'         => 'ids',
-            ) );
-
-            if ( ! empty( $latest_reply ) ) {
-                $reply_author = (int) get_post_field( 'post_author', $latest_reply[0] );
-                if ( $reply_author === (int) $user_id ) {
-                    continue;
-                }
+            if ( $latest_reply_author === (int) $user_id ) {
+                continue;
             }
 
             // Check if user still has email notifications enabled.
-            if ( get_user_meta( $user_id, 'fhb_email_notifications', true ) !== '1' ) {
+            if ( get_user_meta( $user_id, FHB_Constants::USERMETA_EMAIL_NOTIFICATIONS, true ) !== '1' ) {
                 continue;
             }
 
@@ -121,7 +122,7 @@ class FHB_Notifications {
 
         // Has it been 3+ days since the last notification?
         $days_since = ( time() - strtotime( $last_sent ) ) / DAY_IN_SECONDS;
-        if ( $days_since >= 3 ) {
+        if ( $days_since >= FHB_Constants::NOTIFICATION_THROTTLE_DAYS ) {
             return true;
         }
 
@@ -202,18 +203,18 @@ class FHB_Notifications {
      */
     public static function send_manual_notification( $topic_id ) {
         $topic = get_post( $topic_id );
-        if ( ! $topic || 'fhb_topic' !== $topic->post_type ) {
+        if ( ! $topic || FHB_Constants::POST_TYPE_TOPIC !== $topic->post_type ) {
             return false;
         }
 
-        $subscribers = get_post_meta( $topic_id, '_fhb_subscribers', true );
-        if ( ! is_array( $subscribers ) || empty( $subscribers ) ) {
+        $subscribers = FHB_Constants::get_subscribers( $topic_id );
+        if ( empty( $subscribers ) ) {
             return false;
         }
 
         $sent = 0;
         foreach ( $subscribers as $user_id ) {
-            if ( get_user_meta( $user_id, 'fhb_email_notifications', true ) === '1' ) {
+            if ( get_user_meta( $user_id, FHB_Constants::USERMETA_EMAIL_NOTIFICATIONS, true ) === '1' ) {
                 self::send_email( $user_id, $topic_id, $topic );
                 self::record_sent( $user_id, $topic_id );
                 $sent++;

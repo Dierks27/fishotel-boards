@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 <form class="fhb-form fhb-form-new-reply" data-action="fhb_new_reply">
-    <?php wp_nonce_field( 'fhb_nonce', 'fhb_nonce_field' ); ?>
+    <?php wp_nonce_field( FHB_Constants::NONCE_ACTION, 'fhb_nonce_field' ); ?>
     <input type="hidden" name="topic_id" value="<?php echo esc_attr( $topic->ID ); ?>" />
     <div class="fhb-form-group">
         <label for="fhb-reply-content">Reply</label>

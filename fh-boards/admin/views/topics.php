@@ -11,7 +11,7 @@ $message = isset( $_GET['message'] ) ? sanitize_text_field( $_GET['message'] ) :
 
 $paged = isset( $_GET['paged'] ) ? absint( $_GET['paged'] ) : 1;
 $topics = new WP_Query( array(
-    'post_type'      => 'fhb_topic',
+    'post_type'      => FHB_Constants::POST_TYPE_TOPIC,
     'post_status'    => 'any',
     'posts_per_page' => 20,
     'paged'          => $paged,
@@ -47,8 +47,8 @@ $topics = new WP_Query( array(
                 <?php while ( $topics->have_posts() ) : $topics->the_post(); ?>
                     <?php
                     $topic_id    = get_the_ID();
-                    $reply_count = absint( get_post_meta( $topic_id, '_fhb_reply_count', true ) );
-                    $is_closed   = get_post_meta( $topic_id, '_fhb_closed', true ) === '1';
+                    $reply_count = absint( get_post_meta( $topic_id, FHB_Constants::META_REPLY_COUNT, true ) );
+                    $is_closed   = FHB_Constants::is_topic_closed( $topic_id );
                     ?>
                     <tr>
                         <td><?php echo esc_html( $topic_id ); ?></td>

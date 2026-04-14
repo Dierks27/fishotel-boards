@@ -12,7 +12,7 @@ $count   = isset( $_GET['count'] ) ? absint( $_GET['count'] ) : 0;
 
 // Get all topics that have subscribers.
 $topics = get_posts( array(
-    'post_type'      => 'fhb_topic',
+    'post_type'      => FHB_Constants::POST_TYPE_TOPIC,
     'post_status'    => 'publish',
     'posts_per_page' => -1,
     'orderby'        => 'title',
@@ -42,8 +42,8 @@ $topics = get_posts( array(
                             <option value="">-- Select a topic --</option>
                             <?php foreach ( $topics as $topic ) : ?>
                                 <?php
-                                $subscribers = get_post_meta( $topic->ID, '_fhb_subscribers', true );
-                                $sub_count   = is_array( $subscribers ) ? count( $subscribers ) : 0;
+                                $subscribers = FHB_Constants::get_subscribers( $topic->ID );
+                                $sub_count   = count( $subscribers );
                                 ?>
                                 <option value="<?php echo esc_attr( $topic->ID ); ?>">
                                     <?php echo esc_html( $topic->post_title ); ?> (<?php echo $sub_count; ?> subscriber<?php echo $sub_count !== 1 ? 's' : ''; ?>)

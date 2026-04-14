@@ -22,7 +22,7 @@ class FHB_Admin {
         add_menu_page(
             'FH Boards',
             'FH Boards',
-            'manage_options',
+            FHB_Constants::ADMIN_CAP,
             'fh-boards',
             array( __CLASS__, 'page_topics' ),
             'dashicons-format-chat',
@@ -33,7 +33,7 @@ class FHB_Admin {
             'fh-boards',
             'Topics',
             'Topics',
-            'manage_options',
+            FHB_Constants::ADMIN_CAP,
             'fh-boards',
             array( __CLASS__, 'page_topics' )
         );
@@ -42,7 +42,7 @@ class FHB_Admin {
             'fh-boards',
             'Replies',
             'Replies',
-            'manage_options',
+            FHB_Constants::ADMIN_CAP,
             'fh-boards-replies',
             array( __CLASS__, 'page_replies' )
         );
@@ -51,7 +51,7 @@ class FHB_Admin {
             'fh-boards',
             'Subscribers',
             'Subscribers',
-            'manage_options',
+            FHB_Constants::ADMIN_CAP,
             'fh-boards-subscribers',
             array( __CLASS__, 'page_subscribers' )
         );
@@ -60,7 +60,7 @@ class FHB_Admin {
             'fh-boards',
             'Send Notification',
             'Send Notification',
-            'manage_options',
+            FHB_Constants::ADMIN_CAP,
             'fh-boards-notify',
             array( __CLASS__, 'page_notify' )
         );
@@ -69,7 +69,7 @@ class FHB_Admin {
             'fh-boards',
             'Settings',
             'Settings',
-            'manage_options',
+            FHB_Constants::ADMIN_CAP,
             'fh-boards-settings',
             array( __CLASS__, 'page_settings' )
         );
@@ -79,7 +79,7 @@ class FHB_Admin {
      * Handle admin POST actions (delete, close, notify).
      */
     public static function handle_actions() {
-        if ( ! isset( $_POST['fhb_admin_action'] ) || ! current_user_can( 'manage_options' ) ) {
+        if ( ! isset( $_POST['fhb_admin_action'] ) || ! current_user_can( FHB_Constants::ADMIN_CAP ) ) {
             return;
         }
 
@@ -114,24 +114,51 @@ class FHB_Admin {
     }
 
     /* ------------------------------------------------------------------
+     * Shared helpers
+     * ----------------------------------------------------------------*/
+
+    /**
+     * Extract an integer from a POST field.
+     */
+    private static function get_post_int( $key ) {
+        return isset( $_POST[ $key ] ) ? absint( $_POST[ $key ] ) : 0;
+    }
+
+    /**
+     * Redirect to an admin page with a status message.
+     */
+    private static function redirect_with_message( $page, $message, $extra = array() ) {
+        $args = array_merge( array( 'page' => $page, 'message' => $message ), $extra );
+        wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
+        exit;
+    }
+
+    /**
+     * Get all reply IDs for a given topic.
+     */
+    private static function get_topic_reply_ids( $topic_id, $status = 'any' ) {
+        return get_posts( array(
+            'post_type'      => FHB_Constants::POST_TYPE_REPLY,
+            'post_status'    => $status,
+            'posts_per_page' => -1,
+            'meta_key'       => FHB_Constants::META_TOPIC_ID,
+            'meta_value'     => $topic_id,
+            'fields'         => 'ids',
+        ) );
+    }
+
+    /* ------------------------------------------------------------------
      * Admin actions
      * ----------------------------------------------------------------*/
 
     private static function action_delete_topic() {
-        $topic_id = isset( $_POST['topic_id'] ) ? absint( $_POST['topic_id'] ) : 0;
+        $topic_id = self::get_post_int( 'topic_id' );
         if ( ! $topic_id ) {
             return;
         }
 
         // Delete all replies for this topic.
-        $replies = get_posts( array(
-            'post_type'      => 'fhb_reply',
-            'posts_per_page' => -1,
-            'post_status'    => 'any',
-            'meta_key'       => '_fhb_topic_id',
-            'meta_value'     => $topic_id,
-            'fields'         => 'ids',
-        ) );
+        $replies = self::get_topic_reply_ids( $topic_id );
         foreach ( $replies as $reply_id ) {
             wp_delete_post( $reply_id, true );
         }
@@ -141,92 +168,59 @@ class FHB_Admin {
 
         wp_delete_post( $topic_id, true );
 
-        wp_safe_redirect( add_query_arg( array(
-            'page'    => 'fh-boards',
-            'message' => 'topic_deleted',
-        ), admin_url( 'admin.php' ) ) );
-        exit;
+        self::redirect_with_message( 'fh-boards', 'topic_deleted' );
     }
 
     private static function action_close_topic() {
-        $topic_id = isset( $_POST['topic_id'] ) ? absint( $_POST['topic_id'] ) : 0;
+        $topic_id = self::get_post_int( 'topic_id' );
         if ( $topic_id ) {
-            update_post_meta( $topic_id, '_fhb_closed', '1' );
+            update_post_meta( $topic_id, FHB_Constants::META_CLOSED, '1' );
         }
 
-        wp_safe_redirect( add_query_arg( array(
-            'page'    => 'fh-boards',
-            'message' => 'topic_closed',
-        ), admin_url( 'admin.php' ) ) );
-        exit;
+        self::redirect_with_message( 'fh-boards', 'topic_closed' );
     }
 
     private static function action_reopen_topic() {
-        $topic_id = isset( $_POST['topic_id'] ) ? absint( $_POST['topic_id'] ) : 0;
+        $topic_id = self::get_post_int( 'topic_id' );
         if ( $topic_id ) {
-            delete_post_meta( $topic_id, '_fhb_closed' );
+            delete_post_meta( $topic_id, FHB_Constants::META_CLOSED );
         }
 
-        wp_safe_redirect( add_query_arg( array(
-            'page'    => 'fh-boards',
-            'message' => 'topic_reopened',
-        ), admin_url( 'admin.php' ) ) );
-        exit;
+        self::redirect_with_message( 'fh-boards', 'topic_reopened' );
     }
 
     private static function action_delete_reply() {
-        $reply_id = isset( $_POST['reply_id'] ) ? absint( $_POST['reply_id'] ) : 0;
+        $reply_id = self::get_post_int( 'reply_id' );
         if ( ! $reply_id ) {
             return;
         }
 
-        $topic_id = get_post_meta( $reply_id, '_fhb_topic_id', true );
+        $topic_id = get_post_meta( $reply_id, FHB_Constants::META_TOPIC_ID, true );
         wp_delete_post( $reply_id, true );
 
         // Recalculate reply count.
         if ( $topic_id ) {
-            $count = self::count_replies( $topic_id );
-            update_post_meta( $topic_id, '_fhb_reply_count', $count );
+            $count = count( self::get_topic_reply_ids( $topic_id, 'publish' ) );
+            update_post_meta( $topic_id, FHB_Constants::META_REPLY_COUNT, $count );
         }
 
-        wp_safe_redirect( add_query_arg( array(
-            'page'    => 'fh-boards-replies',
-            'message' => 'reply_deleted',
-        ), admin_url( 'admin.php' ) ) );
-        exit;
+        self::redirect_with_message( 'fh-boards-replies', 'reply_deleted' );
     }
 
     private static function action_send_notification() {
-        $topic_id = isset( $_POST['topic_id'] ) ? absint( $_POST['topic_id'] ) : 0;
+        $topic_id = self::get_post_int( 'topic_id' );
         if ( ! $topic_id ) {
             return;
         }
 
         $sent = FHB_Notifications::send_manual_notification( $topic_id );
 
-        wp_safe_redirect( add_query_arg( array(
-            'page'    => 'fh-boards-notify',
-            'message' => 'notification_sent',
-            'count'   => $sent,
-        ), admin_url( 'admin.php' ) ) );
-        exit;
+        self::redirect_with_message( 'fh-boards-notify', 'notification_sent', array( 'count' => $sent ) );
     }
 
     /* ------------------------------------------------------------------
-     * Helper methods
+     * Other helpers
      * ----------------------------------------------------------------*/
-
-    private static function count_replies( $topic_id ) {
-        $replies = get_posts( array(
-            'post_type'      => 'fhb_reply',
-            'post_status'    => 'publish',
-            'posts_per_page' => -1,
-            'meta_key'       => '_fhb_topic_id',
-            'meta_value'     => $topic_id,
-            'fields'         => 'ids',
-        ) );
-        return count( $replies );
-    }
 
     private static function clean_topic_db_records( $topic_id ) {
         global $wpdb;

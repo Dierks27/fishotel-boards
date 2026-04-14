@@ -29,9 +29,9 @@ class FHB_Activator {
      * Removes the scheduled cron event.
      */
     public static function deactivate() {
-        $timestamp = wp_next_scheduled( 'fhb_process_notifications' );
+        $timestamp = wp_next_scheduled( FHB_Constants::CRON_HOOK );
         if ( $timestamp ) {
-            wp_unschedule_event( $timestamp, 'fhb_process_notifications' );
+            wp_unschedule_event( $timestamp, FHB_Constants::CRON_HOOK );
         }
     }
 
@@ -43,8 +43,8 @@ class FHB_Activator {
 
         $charset_collate = $wpdb->get_charset_collate();
 
-        $thread_visits_table = $wpdb->prefix . 'fhb_thread_visits';
-        $notifications_table = $wpdb->prefix . 'fhb_notifications';
+        $thread_visits_table = $wpdb->prefix . FHB_Constants::TABLE_THREAD_VISITS;
+        $notifications_table = $wpdb->prefix . FHB_Constants::TABLE_NOTIFICATIONS;
 
         $sql_thread_visits = "CREATE TABLE {$thread_visits_table} (
             id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -78,8 +78,8 @@ class FHB_Activator {
      * Schedule the WP Cron event for processing notifications.
      */
     private static function schedule_cron() {
-        if ( ! wp_next_scheduled( 'fhb_process_notifications' ) ) {
-            wp_schedule_event( time(), 'hourly', 'fhb_process_notifications' );
+        if ( ! wp_next_scheduled( FHB_Constants::CRON_HOOK ) ) {
+            wp_schedule_event( time(), 'hourly', FHB_Constants::CRON_HOOK );
         }
     }
 
@@ -88,7 +88,7 @@ class FHB_Activator {
      */
     public static function get_thread_visits_table() {
         global $wpdb;
-        return $wpdb->prefix . 'fhb_thread_visits';
+        return $wpdb->prefix . FHB_Constants::TABLE_THREAD_VISITS;
     }
 
     /**
@@ -96,6 +96,6 @@ class FHB_Activator {
      */
     public static function get_notifications_table() {
         global $wpdb;
-        return $wpdb->prefix . 'fhb_notifications';
+        return $wpdb->prefix . FHB_Constants::TABLE_NOTIFICATIONS;
     }
 }
