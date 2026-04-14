@@ -2,7 +2,7 @@
 /**
  * Plugin Name: FH Boards
  * Description: A lightweight private beta tester forum for FisHotel.
- * Version:     1.7.0
+ * Version:     1.8.0
  * Author:      FisHotel
  * Text Domain: fh-boards
  */
@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'FHB_VERSION', '1.7.0' );
+define( 'FHB_VERSION', '1.8.0' );
 define( 'FHB_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FHB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 

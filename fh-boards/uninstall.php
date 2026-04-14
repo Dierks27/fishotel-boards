@@ -32,6 +32,17 @@ if ( $delete_data ) {
         wp_delete_post( $subject_id, true );
     }
 
+    // Delete all fhb_topic_cat posts.
+    $topic_cats = get_posts( array(
+        'post_type'      => FHB_Constants::POST_TYPE_TOPIC_CAT,
+        'posts_per_page' => -1,
+        'post_status'    => 'any',
+        'fields'         => 'ids',
+    ) );
+    foreach ( $topic_cats as $tc_id ) {
+        wp_delete_post( $tc_id, true );
+    }
+
     // Delete all fhb_topic posts and their meta.
     $topics = get_posts( array(
         'post_type'      => FHB_Constants::POST_TYPE_TOPIC,

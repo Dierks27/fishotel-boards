@@ -2,8 +2,11 @@
 /**
  * FHB_Shortcode – [fh_boards] shortcode handler.
  *
- * Routes to subject list, topic list (within a subject), single topic,
- * or login-required template.
+ * Routing (4 levels):
+ *   /fh-boards/                        → Subject list
+ *   /fh-boards/?fhb_subject=123        → Topics in that subject
+ *   /fh-boards/?fhb_topic_cat=456      → Threads in that topic
+ *   /fh-boards/?fhb_topic=789          → Single thread (conversation)
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -16,14 +19,6 @@ class FHB_Shortcode {
         add_shortcode( 'fh_boards', array( __CLASS__, 'render' ) );
     }
 
-    /**
-     * Main shortcode callback.
-     *
-     * Routing:
-     *   /fh-boards/                        → Subject list
-     *   /fh-boards/?fhb_subject=123        → Topics in that subject
-     *   /fh-boards/?fhb_topic=456          → Single topic (conversation)
-     */
     public static function render( $atts ) {
         ob_start();
 
@@ -32,11 +27,14 @@ class FHB_Shortcode {
             return ob_get_clean();
         }
 
-        $topic_id   = isset( $_GET['fhb_topic'] ) ? absint( $_GET['fhb_topic'] ) : 0;
-        $subject_id = isset( $_GET['fhb_subject'] ) ? absint( $_GET['fhb_subject'] ) : 0;
+        $topic_id     = isset( $_GET['fhb_topic'] ) ? absint( $_GET['fhb_topic'] ) : 0;
+        $topic_cat_id = isset( $_GET['fhb_topic_cat'] ) ? absint( $_GET['fhb_topic_cat'] ) : 0;
+        $subject_id   = isset( $_GET['fhb_subject'] ) ? absint( $_GET['fhb_subject'] ) : 0;
 
         if ( $topic_id ) {
-            self::render_single_topic( $topic_id );
+            self::render_single_thread( $topic_id );
+        } elseif ( $topic_cat_id ) {
+            self::render_thread_list( $topic_cat_id );
         } elseif ( $subject_id ) {
             self::render_topic_list( $subject_id );
         } else {
@@ -46,9 +44,7 @@ class FHB_Shortcode {
         return ob_get_clean();
     }
 
-    /**
-     * Render the subject list (main board page).
-     */
+    /** Level 1: Subject list (main board page). */
     private static function render_subject_list() {
         $subjects = get_posts( array(
             'post_type'      => FHB_Constants::POST_TYPE_SUBJECT,
@@ -61,9 +57,7 @@ class FHB_Shortcode {
         include FHB_PLUGIN_DIR . 'templates/subject-list.php';
     }
 
-    /**
-     * Render the topic list within a subject.
-     */
+    /** Level 2: Topics within a subject. */
     private static function render_topic_list( $subject_id ) {
         $subject = get_post( $subject_id );
 
@@ -72,9 +66,33 @@ class FHB_Shortcode {
             return;
         }
 
-        $paged = isset( $_GET['fhb_paged'] ) ? absint( $_GET['fhb_paged'] ) : 1;
+        $topic_cats = get_posts( array(
+            'post_type'      => FHB_Constants::POST_TYPE_TOPIC_CAT,
+            'post_status'    => 'publish',
+            'posts_per_page' => -1,
+            'orderby'        => 'title',
+            'order'          => 'ASC',
+            'meta_key'       => FHB_Constants::META_SUBJECT_ID,
+            'meta_value'     => $subject_id,
+        ) );
 
-        $topics = new WP_Query( array(
+        include FHB_PLUGIN_DIR . 'templates/topic-list.php';
+    }
+
+    /** Level 3: Threads within a topic. */
+    private static function render_thread_list( $topic_cat_id ) {
+        $topic_cat = get_post( $topic_cat_id );
+
+        if ( ! $topic_cat || FHB_Constants::POST_TYPE_TOPIC_CAT !== $topic_cat->post_type || 'publish' !== $topic_cat->post_status ) {
+            echo '<p class="fhb-error">Topic not found.</p>';
+            return;
+        }
+
+        $subject_id = get_post_meta( $topic_cat_id, FHB_Constants::META_SUBJECT_ID, true );
+        $subject    = $subject_id ? get_post( $subject_id ) : null;
+        $paged      = isset( $_GET['fhb_paged'] ) ? absint( $_GET['fhb_paged'] ) : 1;
+
+        $threads = new WP_Query( array(
             'post_type'      => FHB_Constants::POST_TYPE_TOPIC,
             'post_status'    => 'publish',
             'posts_per_page' => 20,
@@ -84,27 +102,24 @@ class FHB_Shortcode {
             'order'          => 'DESC',
             'meta_query'     => array(
                 array(
-                    'key'   => FHB_Constants::META_SUBJECT_ID,
-                    'value' => $subject_id,
+                    'key'   => FHB_Constants::META_TOPIC_CAT_ID,
+                    'value' => $topic_cat_id,
                 ),
             ),
         ) );
 
-        include FHB_PLUGIN_DIR . 'templates/board-list.php';
+        include FHB_PLUGIN_DIR . 'templates/thread-list.php';
     }
 
-    /**
-     * Render a single topic with its replies.
-     */
-    private static function render_single_topic( $topic_id ) {
+    /** Level 4: Single thread with replies. */
+    private static function render_single_thread( $topic_id ) {
         $topic = get_post( $topic_id );
 
         if ( ! $topic || FHB_Constants::POST_TYPE_TOPIC !== $topic->post_type || 'publish' !== $topic->post_status ) {
-            echo '<p class="fhb-error">Topic not found.</p>';
+            echo '<p class="fhb-error">Thread not found.</p>';
             return;
         }
 
-        // Record this visit for the current user.
         self::record_visit( $topic_id );
 
         $replies = new WP_Query( array(
@@ -117,7 +132,6 @@ class FHB_Shortcode {
             'order'          => 'ASC',
         ) );
 
-        // Check subscription status.
         $user_id       = get_current_user_id();
         $is_subscribed = self::is_subscribed( $user_id, $topic_id );
         $notifs_on     = get_user_meta( $user_id, FHB_Constants::USERMETA_EMAIL_NOTIFICATIONS, true ) === '1';
@@ -126,9 +140,7 @@ class FHB_Shortcode {
         include FHB_PLUGIN_DIR . 'templates/single-topic.php';
     }
 
-    /**
-     * Record a thread visit for the current user.
-     */
+    /** Record a thread visit for the current user. */
     private static function record_visit( $topic_id ) {
         global $wpdb;
 
@@ -144,16 +156,11 @@ class FHB_Shortcode {
             "INSERT INTO {$table} (user_id, topic_id, last_visit)
              VALUES (%d, %d, %s)
              ON DUPLICATE KEY UPDATE last_visit = %s",
-            $user_id,
-            $topic_id,
-            $now,
-            $now
+            $user_id, $topic_id, $now, $now
         ) );
     }
 
-    /**
-     * Check if a user is subscribed to a topic.
-     */
+    /** Check if a user is subscribed to a thread. */
     public static function is_subscribed( $user_id, $topic_id ) {
         $subscribers = FHB_Constants::get_subscribers( $topic_id );
         return in_array( $user_id, $subscribers, true );

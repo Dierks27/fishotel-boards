@@ -1,27 +1,31 @@
 <?php
 /**
- * Template – Topic listing within a subject.
+ * Template – Thread listing within a topic.
  *
- * Variables available: $subject (WP_Post), $topics (WP_Query), $paged (int).
+ * Variables available: $topic_cat (WP_Post), $subject (WP_Post|null),
+ *                      $threads (WP_Query), $paged (int).
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-$board_url = remove_query_arg( array( 'fhb_subject', 'fhb_topic', 'fhb_paged' ) );
+$base_url    = remove_query_arg( array( 'fhb_subject', 'fhb_topic_cat', 'fhb_topic', 'fhb_paged' ) );
+$subject_id  = get_post_meta( $topic_cat->ID, FHB_Constants::META_SUBJECT_ID, true );
+$back_url    = $subject_id ? add_query_arg( 'fhb_subject', $subject_id, $base_url ) : $base_url;
+$back_label  = $subject ? $subject->post_title : 'Boards';
 ?>
 <div class="fhb-board-wrap">
     <div class="fhb-back-link">
-        <a href="<?php echo esc_url( $board_url ); ?>">&laquo; Back to Boards</a>
+        <a href="<?php echo esc_url( $back_url ); ?>">&laquo; Back to <?php echo esc_html( $back_label ); ?></a>
     </div>
 
     <div class="fhb-board-header">
-        <h2><?php echo esc_html( $subject->post_title ); ?></h2>
-        <button class="fhb-btn fhb-new-topic-toggle" type="button">New Topic</button>
+        <h2><?php echo esc_html( $topic_cat->post_title ); ?></h2>
+        <button class="fhb-btn fhb-new-topic-toggle" type="button">New Thread</button>
     </div>
-    <?php if ( $subject->post_content ) : ?>
-        <p class="fhb-subject-desc"><?php echo esc_html( $subject->post_content ); ?></p>
+    <?php if ( $topic_cat->post_content ) : ?>
+        <p class="fhb-subject-desc"><?php echo esc_html( $topic_cat->post_content ); ?></p>
     <?php endif; ?>
 
     <div class="fhb-new-topic-form" style="display:none;">
@@ -29,26 +33,26 @@ $board_url = remove_query_arg( array( 'fhb_subject', 'fhb_topic', 'fhb_paged' ) 
     </div>
 
     <div class="fhb-search-wrap">
-        <input type="text" class="fhb-search-input" placeholder="Search topics and replies..." autocomplete="off" />
+        <input type="text" class="fhb-search-input" placeholder="Search threads and replies..." autocomplete="off" />
         <button type="button" class="fhb-search-clear" style="display:none;">&times;</button>
         <div class="fhb-search-loading" style="display:none;">Searching...</div>
     </div>
     <div class="fhb-search-results" style="display:none;"></div>
 
-    <?php if ( $topics->have_posts() ) : ?>
+    <?php if ( $threads->have_posts() ) : ?>
         <div class="fhb-topic-list">
-            <?php while ( $topics->have_posts() ) : $topics->the_post(); ?>
+            <?php while ( $threads->have_posts() ) : $threads->the_post(); ?>
                 <?php
-                $topic_id      = get_the_ID();
-                $reply_count   = absint( get_post_meta( $topic_id, FHB_Constants::META_REPLY_COUNT, true ) );
-                $last_activity = get_post_meta( $topic_id, FHB_Constants::META_LAST_ACTIVITY, true );
-                $is_closed     = FHB_Constants::is_topic_closed( $topic_id );
+                $thread_id     = get_the_ID();
+                $reply_count   = absint( get_post_meta( $thread_id, FHB_Constants::META_REPLY_COUNT, true ) );
+                $last_activity = get_post_meta( $thread_id, FHB_Constants::META_LAST_ACTIVITY, true );
+                $is_closed     = FHB_Constants::is_topic_closed( $thread_id );
                 $author        = get_the_author();
-                $topic_url     = add_query_arg( 'fhb_topic', $topic_id, remove_query_arg( array( 'fhb_topic', 'fhb_paged' ) ) );
+                $thread_url    = add_query_arg( 'fhb_topic', $thread_id, remove_query_arg( array( 'fhb_topic', 'fhb_paged' ) ) );
                 ?>
                 <div class="fhb-topic-row<?php echo $is_closed ? ' fhb-closed' : ''; ?>">
                     <div class="fhb-topic-title">
-                        <a href="<?php echo esc_url( $topic_url ); ?>">
+                        <a href="<?php echo esc_url( $thread_url ); ?>">
                             <?php echo esc_html( get_the_title() ); ?>
                         </a>
                         <?php if ( $is_closed ) : ?>
@@ -66,12 +70,12 @@ $board_url = remove_query_arg( array( 'fhb_subject', 'fhb_topic', 'fhb_paged' ) 
             <?php endwhile; ?>
         </div>
 
-        <?php if ( $topics->max_num_pages > 1 ) : ?>
+        <?php if ( $threads->max_num_pages > 1 ) : ?>
             <div class="fhb-pagination">
                 <?php if ( $paged > 1 ) : ?>
                     <a href="<?php echo esc_url( add_query_arg( 'fhb_paged', $paged - 1 ) ); ?>" class="fhb-btn">&laquo; Previous</a>
                 <?php endif; ?>
-                <?php if ( $paged < $topics->max_num_pages ) : ?>
+                <?php if ( $paged < $threads->max_num_pages ) : ?>
                     <a href="<?php echo esc_url( add_query_arg( 'fhb_paged', $paged + 1 ) ); ?>" class="fhb-btn">Next &raquo;</a>
                 <?php endif; ?>
             </div>
@@ -79,6 +83,6 @@ $board_url = remove_query_arg( array( 'fhb_subject', 'fhb_topic', 'fhb_paged' ) 
 
         <?php wp_reset_postdata(); ?>
     <?php else : ?>
-        <p class="fhb-no-topics">No topics yet. Be the first to start a conversation!</p>
+        <p class="fhb-no-topics">No threads yet. Be the first to start a conversation!</p>
     <?php endif; ?>
 </div>
