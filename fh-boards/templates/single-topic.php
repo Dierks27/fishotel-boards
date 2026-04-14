@@ -25,15 +25,19 @@ $board_url = remove_query_arg( array( 'fhb_topic', 'fhb_paged' ) );
     </div>
 
     <!-- Original post -->
+    <?php $op_author_name = get_the_author_meta( 'display_name', $topic->post_author ); ?>
     <div class="fhb-post fhb-original-post" data-post-id="<?php echo esc_attr( $topic->ID ); ?>">
         <div class="fhb-post-author">
             <?php echo get_avatar( $topic->post_author, 40 ); ?>
-            <strong><?php echo esc_html( get_the_author_meta( 'display_name', $topic->post_author ) ); ?></strong>
+            <strong data-initial="<?php echo esc_attr( mb_strtoupper( mb_substr( $op_author_name, 0, 1 ) ) ); ?>"><?php echo esc_html( $op_author_name ); ?></strong>
             <span class="fhb-post-date"><?php echo esc_html( get_the_date( '', $topic ) ); ?> at <?php echo esc_html( get_the_time( '', $topic ) ); ?></span>
         </div>
         <div class="fhb-post-content">
             <?php echo wp_kses_post( wpautop( $topic->post_content ) ); ?>
         </div>
+        <?php if ( (int) $topic->post_author === get_current_user_id() || current_user_can( 'manage_options' ) ) : ?>
+            <div class="fhb-post-actions"><button type="button" class="fhb-edit-btn">Edit</button></div>
+        <?php endif; ?>
     </div>
 
     <!-- Replies -->
@@ -49,6 +53,9 @@ $board_url = remove_query_arg( array( 'fhb_topic', 'fhb_paged' ) );
                     <div class="fhb-post-content">
                         <?php echo wp_kses_post( wpautop( get_the_content() ) ); ?>
                     </div>
+                    <?php if ( (int) get_the_author_meta( 'ID' ) === get_current_user_id() || current_user_can( 'manage_options' ) ) : ?>
+                        <div class="fhb-post-actions"><button type="button" class="fhb-edit-btn">Edit</button></div>
+                    <?php endif; ?>
                 </div>
             <?php endwhile; ?>
             <?php wp_reset_postdata(); ?>

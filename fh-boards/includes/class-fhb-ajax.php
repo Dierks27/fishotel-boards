@@ -13,6 +13,7 @@ class FHB_Ajax {
         // Logged-in only actions.
         add_action( 'wp_ajax_fhb_new_topic', array( __CLASS__, 'new_topic' ) );
         add_action( 'wp_ajax_fhb_new_reply', array( __CLASS__, 'new_reply' ) );
+        add_action( 'wp_ajax_fhb_edit_post', array( __CLASS__, 'edit_post' ) );
         add_action( 'wp_ajax_fhb_subscribe', array( __CLASS__, 'subscribe' ) );
         add_action( 'wp_ajax_fhb_unsubscribe', array( __CLASS__, 'unsubscribe' ) );
         add_action( 'wp_ajax_fhb_enable_notifications', array( __CLASS__, 'enable_notifications' ) );
@@ -121,12 +122,56 @@ class FHB_Ajax {
         $html .= '<span class="fhb-post-date">' . esc_html( $date ) . ' at ' . esc_html( $time ) . '</span>';
         $html .= '</div>';
         $html .= '<div class="fhb-post-content">' . wp_kses_post( wpautop( $content ) ) . '</div>';
+        $html .= '<div class="fhb-post-actions"><button type="button" class="fhb-edit-btn">Edit</button></div>';
         $html .= '</div>';
 
         wp_send_json_success( array(
             'message'  => 'Reply posted.',
             'reply_id' => $reply_id,
             'html'     => $html,
+        ) );
+    }
+
+    /* ------------------------------------------------------------------
+     * Edit a post (topic or reply) inline.
+     * ----------------------------------------------------------------*/
+    public static function edit_post() {
+        check_ajax_referer( 'fhb_nonce', 'nonce' );
+
+        if ( ! is_user_logged_in() ) {
+            wp_send_json_error( array( 'message' => 'You must be logged in.' ) );
+        }
+
+        $post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
+        $content = isset( $_POST['content'] ) ? sanitize_textarea_field( wp_unslash( $_POST['content'] ) ) : '';
+
+        if ( ! $post_id || empty( $content ) ) {
+            wp_send_json_error( array( 'message' => 'Post ID and content are required.' ) );
+        }
+
+        $post = get_post( $post_id );
+        if ( ! $post || ! in_array( $post->post_type, array( 'fhb_topic', 'fhb_reply' ), true ) ) {
+            wp_send_json_error( array( 'message' => 'Post not found.' ) );
+        }
+
+        // Only the author or an admin can edit.
+        $current_user = get_current_user_id();
+        if ( (int) $post->post_author !== $current_user && ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => 'You do not have permission to edit this post.' ) );
+        }
+
+        $result = wp_update_post( array(
+            'ID'           => $post_id,
+            'post_content' => $content,
+        ), true );
+
+        if ( is_wp_error( $result ) ) {
+            wp_send_json_error( array( 'message' => 'Could not update post.' ) );
+        }
+
+        wp_send_json_success( array(
+            'message' => 'Post updated.',
+            'html'    => wp_kses_post( wpautop( $content ) ),
         ) );
     }
 

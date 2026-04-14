@@ -268,8 +268,28 @@
     background: var(--fhb-surface);
 }
 
+.fhb-original-post .fhb-post-author img {
+    display: none;
+}
+
 .fhb-original-post .fhb-post-author strong {
     color: var(--fhb-accent);
+}
+
+.fhb-original-post .fhb-post-author strong::before {
+    content: attr(data-initial);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 50%;
+    background: var(--fhb-accent);
+    color: #1a1a1a;
+    font-size: 15px;
+    font-weight: 700;
+    margin-right: 10px;
 }
 
 .fhb-original-post .fhb-post-content {
@@ -327,6 +347,19 @@
     line-height: 1.5;
 }
 
+/* Reply bubble spacing and alternating backgrounds */
+.fhb-post:not(.fhb-original-post) {
+    margin-bottom: 16px;
+}
+
+.fhb-post:not(.fhb-original-post):nth-child(odd) {
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.fhb-post:not(.fhb-original-post):nth-child(even) {
+    background: rgba(255, 255, 255, 0.04);
+}
+
 /* =====================================================================
    Subscribe Area
    ===================================================================== */
@@ -340,19 +373,21 @@
 
 .fhb-subscribe-message {
     margin-top: 10px;
-    padding: 8px 14px;
+    padding: 6px;
     border-radius: 3px;
-    font-size: 14px;
+    font-size: 12px;
+    text-align: center;
+    background: transparent;
 }
 
 .fhb-subscribe-message.fhb-msg-info {
-    background: var(--fhb-warning-bg);
+    background: transparent;
     color: var(--fhb-warning-text);
 }
 
 .fhb-subscribe-message.fhb-msg-success {
-    background: var(--fhb-success-bg);
-    color: var(--fhb-success-text);
+    background: transparent;
+    color: rgba(129, 199, 132, 0.7);
 }
 
 /* =====================================================================
@@ -376,6 +411,13 @@
     font-weight: 600;
     font-size: 14px;
     color: var(--fhb-text);
+}
+
+.fhb-form-new-reply .fhb-form-group label {
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--fhb-text-muted);
 }
 
 .fhb-form-group input[type="text"],
@@ -405,6 +447,7 @@
 
 .fhb-form-group textarea {
     resize: vertical;
+    font-family: inherit;
 }
 
 .fhb-form-actions {
@@ -489,6 +532,73 @@
 .fhb-error {
     color: var(--fhb-error-text);
     font-weight: 600;
+}
+
+/* =====================================================================
+   Cancel Button – Ghost Style
+   ===================================================================== */
+/* =====================================================================
+   Inline Edit Controls
+   ===================================================================== */
+.fhb-post-actions {
+    text-align: right;
+    margin-top: 8px;
+}
+
+.fhb-edit-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--fhb-text);
+    opacity: 0.5;
+    transition: opacity 0.15s, color 0.15s;
+    padding: 2px 6px;
+}
+
+.fhb-edit-btn:hover {
+    opacity: 1;
+    color: var(--fhb-accent);
+}
+
+.fhb-edit-textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--fhb-border);
+    border-radius: var(--fhb-radius);
+    font-size: 14px;
+    font-family: inherit;
+    box-sizing: border-box;
+    background: var(--fhb-input-bg);
+    color: var(--fhb-text);
+    resize: vertical;
+    transition: border-color 0.15s;
+}
+
+.fhb-edit-textarea:focus {
+    outline: none;
+    border-color: var(--fhb-accent);
+    box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.25);
+}
+
+.fhb-save-btn {
+    background: var(--fhb-accent);
+    color: #1a1a1a;
+}
+
+.fhb-save-btn:hover {
+    background: var(--fhb-accent-hover);
+}
+
+.fhb-cancel-btn {
+    background: transparent;
+    color: var(--fhb-text-muted);
+    border: 1px solid var(--fhb-border);
+}
+
+.fhb-cancel-btn:hover {
+    background: var(--fhb-surface-hover);
+    color: var(--fhb-text);
 }
 
 /* =====================================================================

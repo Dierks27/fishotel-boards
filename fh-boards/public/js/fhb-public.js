@@ -159,6 +159,82 @@
     });
 
     /* ------------------------------------------------------------------
+     * Inline Edit Post (AJAX)
+     * ----------------------------------------------------------------*/
+    $(document).on('click', '.fhb-edit-btn', function () {
+        var $post    = $(this).closest('.fhb-post');
+        var $content = $post.find('.fhb-post-content');
+        var $actions = $post.find('.fhb-post-actions');
+
+        // Convert displayed HTML back to plain text for the textarea.
+        var raw = $content.html()
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
+            .replace(/<[^>]+>/g, '')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#0?39;/g, "'")
+            .trim();
+
+        // Store original HTML so Cancel can restore it.
+        $content.data('original-html', $content.html());
+
+        // Replace content with textarea.
+        $content.html(
+            '<textarea class="fhb-edit-textarea" rows="4">' +
+            $('<div>').text(raw).html() +
+            '</textarea>'
+        );
+
+        // Swap Edit button for Save / Cancel.
+        $actions.data('original-html', $actions.html());
+        $actions.html(
+            '<button type="button" class="fhb-btn fhb-btn-small fhb-save-btn">Save</button> ' +
+            '<button type="button" class="fhb-btn fhb-btn-small fhb-cancel-btn">Cancel</button>'
+        );
+    });
+
+    $(document).on('click', '.fhb-cancel-btn', function () {
+        var $post    = $(this).closest('.fhb-post');
+        var $content = $post.find('.fhb-post-content');
+        var $actions = $post.find('.fhb-post-actions');
+
+        $content.html($content.data('original-html'));
+        $actions.html($actions.data('original-html'));
+    });
+
+    $(document).on('click', '.fhb-save-btn', function () {
+        var $btn     = $(this);
+        var $post    = $btn.closest('.fhb-post');
+        var $content = $post.find('.fhb-post-content');
+        var $actions = $post.find('.fhb-post-actions');
+        var postId   = $post.data('post-id');
+        var newText  = $content.find('.fhb-edit-textarea').val();
+
+        $btn.prop('disabled', true).text('Saving…');
+
+        $.post(fhb_ajax.ajax_url, {
+            action:  'fhb_edit_post',
+            nonce:   fhb_ajax.nonce,
+            post_id: postId,
+            content: newText
+        }, function (res) {
+            if (res.success) {
+                $content.html(res.data.html);
+                $actions.html($actions.data('original-html'));
+            } else {
+                alert(res.data.message);
+                $btn.prop('disabled', false).text('Save');
+            }
+        }).fail(function () {
+            alert('An error occurred. Please try again.');
+            $btn.prop('disabled', false).text('Save');
+        });
+    });
+
+    /* ------------------------------------------------------------------
      * Enable Notifications + Subscribe (AJAX)
      * ----------------------------------------------------------------*/
     $(document).on('click', '.fhb-enable-notifs-btn', function () {
