@@ -278,7 +278,8 @@ class FHB_Ajax {
                 $tid = get_the_ID();
 
                 // Try to find a matching snippet from topic content.
-                $snippet = self::extract_snippet( get_the_content(), $query );
+                $snippet  = self::extract_snippet( get_the_content(), $query );
+                $reply_id = 0;
 
                 // If no match in topic content, check replies.
                 if ( empty( $snippet ) ) {
@@ -292,7 +293,8 @@ class FHB_Ajax {
                     ) );
                     if ( $matching_replies->have_posts() ) {
                         $matching_replies->the_post();
-                        $snippet = self::extract_snippet( get_the_content(), $query );
+                        $reply_id = get_the_ID();
+                        $snippet  = self::extract_snippet( get_the_content(), $query );
                     }
                     // Restore outer loop post.
                     $ordered->the_post();
@@ -306,6 +308,7 @@ class FHB_Ajax {
                     'reply_count'  => absint( get_post_meta( $tid, FHB_Constants::META_REPLY_COUNT, true ) ),
                     'is_closed'    => FHB_Constants::is_topic_closed( $tid ),
                     'snippet'      => $snippet,
+                    'reply_id'     => $reply_id,
                 );
             }
             wp_reset_postdata();

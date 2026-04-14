@@ -38,7 +38,7 @@ $board_url = remove_query_arg( array( 'fhb_topic', 'fhb_paged' ) );
     </div>
 
     <!-- Original post -->
-    <div class="fhb-post fhb-original-post" data-post-id="<?php echo esc_attr( $topic->ID ); ?>">
+    <div id="fhb-post-<?php echo esc_attr( $topic->ID ); ?>" class="fhb-post fhb-original-post" data-post-id="<?php echo esc_attr( $topic->ID ); ?>">
         <?php fhb_render_post_author( $op_author_name, get_the_date( '', $topic ), get_the_time( '', $topic ) ); ?>
         <div class="fhb-post-content">
             <?php echo wp_kses_post( wpautop( $topic->post_content ) ); ?>
@@ -53,7 +53,7 @@ $board_url = remove_query_arg( array( 'fhb_topic', 'fhb_paged' ) );
     <?php if ( $replies->have_posts() ) : ?>
         <div class="fhb-replies">
             <?php while ( $replies->have_posts() ) : $replies->the_post(); ?>
-                <div class="fhb-post fhb-reply-post" data-post-id="<?php echo esc_attr( get_the_ID() ); ?>">
+                <div id="fhb-post-<?php echo esc_attr( get_the_ID() ); ?>" class="fhb-post fhb-reply-post" data-post-id="<?php echo esc_attr( get_the_ID() ); ?>">
                     <?php fhb_render_post_author( get_the_author(), get_the_date(), get_the_time() ); ?>
                     <div class="fhb-post-content">
                         <?php echo wp_kses_post( wpautop( get_the_content() ) ); ?>
