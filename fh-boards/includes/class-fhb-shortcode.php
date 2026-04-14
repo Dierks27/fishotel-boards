@@ -2,7 +2,8 @@
 /**
  * FHB_Shortcode – [fh_boards] shortcode handler.
  *
- * Routes to board list, single topic, or login-required template.
+ * Routes to subject list, topic list (within a subject), single topic,
+ * or login-required template.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -17,6 +18,11 @@ class FHB_Shortcode {
 
     /**
      * Main shortcode callback.
+     *
+     * Routing:
+     *   /fh-boards/                        → Subject list
+     *   /fh-boards/?fhb_subject=123        → Topics in that subject
+     *   /fh-boards/?fhb_topic=456          → Single topic (conversation)
      */
     public static function render( $atts ) {
         ob_start();
@@ -26,21 +32,46 @@ class FHB_Shortcode {
             return ob_get_clean();
         }
 
-        $topic_id = isset( $_GET['fhb_topic'] ) ? absint( $_GET['fhb_topic'] ) : 0;
+        $topic_id   = isset( $_GET['fhb_topic'] ) ? absint( $_GET['fhb_topic'] ) : 0;
+        $subject_id = isset( $_GET['fhb_subject'] ) ? absint( $_GET['fhb_subject'] ) : 0;
 
         if ( $topic_id ) {
             self::render_single_topic( $topic_id );
+        } elseif ( $subject_id ) {
+            self::render_topic_list( $subject_id );
         } else {
-            self::render_board_list();
+            self::render_subject_list();
         }
 
         return ob_get_clean();
     }
 
     /**
-     * Render the board list (all topics).
+     * Render the subject list (main board page).
      */
-    private static function render_board_list() {
+    private static function render_subject_list() {
+        $subjects = get_posts( array(
+            'post_type'      => FHB_Constants::POST_TYPE_SUBJECT,
+            'post_status'    => 'publish',
+            'posts_per_page' => -1,
+            'orderby'        => 'title',
+            'order'          => 'ASC',
+        ) );
+
+        include FHB_PLUGIN_DIR . 'templates/subject-list.php';
+    }
+
+    /**
+     * Render the topic list within a subject.
+     */
+    private static function render_topic_list( $subject_id ) {
+        $subject = get_post( $subject_id );
+
+        if ( ! $subject || FHB_Constants::POST_TYPE_SUBJECT !== $subject->post_type || 'publish' !== $subject->post_status ) {
+            echo '<p class="fhb-error">Subject not found.</p>';
+            return;
+        }
+
         $paged = isset( $_GET['fhb_paged'] ) ? absint( $_GET['fhb_paged'] ) : 1;
 
         $topics = new WP_Query( array(
@@ -51,6 +82,12 @@ class FHB_Shortcode {
             'meta_key'       => FHB_Constants::META_LAST_ACTIVITY,
             'orderby'        => 'meta_value',
             'order'          => 'DESC',
+            'meta_query'     => array(
+                array(
+                    'key'   => FHB_Constants::META_SUBJECT_ID,
+                    'value' => $subject_id,
+                ),
+            ),
         ) );
 
         include FHB_PLUGIN_DIR . 'templates/board-list.php';

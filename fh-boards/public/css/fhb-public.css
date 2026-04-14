@@ -668,3 +668,67 @@ mark.fhb-highlight {
     background: var(--fhb-surface-hover);
     color: var(--fhb-text);
 }
+
+/* =====================================================================
+   Subject List
+   ===================================================================== */
+.fhb-subject-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.fhb-subject-card {
+    display: block;
+    background: var(--fhb-surface);
+    border: 1px solid var(--fhb-border);
+    border-left: 3px solid var(--fhb-accent);
+    border-radius: var(--fhb-radius);
+    padding: 16px 20px;
+    text-decoration: none;
+    color: var(--fhb-text);
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.fhb-subject-card:hover {
+    background: var(--fhb-surface-hover);
+    border-left-color: var(--fhb-accent-hover);
+    color: var(--fhb-text);
+}
+
+.fhb-subject-title {
+    font-size: 1.15em;
+    font-weight: 600;
+    color: var(--fhb-accent);
+    margin-bottom: 4px;
+}
+
+.fhb-subject-card:hover .fhb-subject-title {
+    color: var(--fhb-accent-hover);
+}
+
+.fhb-subject-description {
+    font-size: 0.9em;
+    color: var(--fhb-text-muted);
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.fhb-subject-meta {
+    font-size: 0.8em;
+    color: var(--fhb-text-muted);
+    display: flex;
+    gap: 16px;
+}
+
+.fhb-topic-subject {
+    color: var(--fhb-accent);
+    font-weight: 500;
+}
+
+.fhb-subject-desc {
+    color: var(--fhb-text-muted);
+    font-size: 0.9em;
+    margin-bottom: 16px;
+    line-height: 1.4;
+}

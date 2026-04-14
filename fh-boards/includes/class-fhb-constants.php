@@ -13,11 +13,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 class FHB_Constants {
 
     // Post types.
-    const POST_TYPE_TOPIC = 'fhb_topic';
-    const POST_TYPE_REPLY = 'fhb_reply';
+    const POST_TYPE_SUBJECT = 'fhb_subject';
+    const POST_TYPE_TOPIC   = 'fhb_topic';
+    const POST_TYPE_REPLY   = 'fhb_reply';
 
     // Post meta keys.
+    const META_SUBJECT_ID           = '_fhb_subject_id';
     const META_REPLY_COUNT          = '_fhb_reply_count';
+    const META_TOPIC_COUNT          = '_fhb_topic_count';
     const META_LAST_ACTIVITY        = '_fhb_last_activity';
     const META_SUBSCRIBERS          = '_fhb_subscribers';
     const META_CLOSED               = '_fhb_closed';

@@ -31,10 +31,19 @@ class FHB_Admin {
 
         add_submenu_page(
             'fh-boards',
+            'Subjects',
+            'Subjects',
+            FHB_Constants::ADMIN_CAP,
+            'fh-boards',
+            array( __CLASS__, 'page_subjects' )
+        );
+
+        add_submenu_page(
+            'fh-boards',
             'Topics',
             'Topics',
             FHB_Constants::ADMIN_CAP,
-            'fh-boards',
+            'fh-boards-topics',
             array( __CLASS__, 'page_topics' )
         );
 
@@ -91,6 +100,14 @@ class FHB_Admin {
         }
 
         switch ( $action ) {
+            case 'create_subject':
+                self::action_create_subject();
+                break;
+
+            case 'delete_subject':
+                self::action_delete_subject();
+                break;
+
             case 'delete_topic':
                 self::action_delete_topic();
                 break;
@@ -150,6 +167,60 @@ class FHB_Admin {
     /* ------------------------------------------------------------------
      * Admin actions
      * ----------------------------------------------------------------*/
+
+    private static function action_create_subject() {
+        $title       = isset( $_POST['subject_title'] ) ? sanitize_text_field( wp_unslash( $_POST['subject_title'] ) ) : '';
+        $description = isset( $_POST['subject_description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['subject_description'] ) ) : '';
+
+        if ( empty( $title ) ) {
+            self::redirect_with_message( 'fh-boards', 'subject_error' );
+        }
+
+        $subject_id = wp_insert_post( array(
+            'post_type'    => FHB_Constants::POST_TYPE_SUBJECT,
+            'post_title'   => $title,
+            'post_content' => $description,
+            'post_status'  => 'publish',
+            'post_author'  => get_current_user_id(),
+        ) );
+
+        if ( ! is_wp_error( $subject_id ) ) {
+            update_post_meta( $subject_id, FHB_Constants::META_TOPIC_COUNT, 0 );
+            update_post_meta( $subject_id, FHB_Constants::META_LAST_ACTIVITY, current_time( 'mysql', true ) );
+        }
+
+        self::redirect_with_message( 'fh-boards', 'subject_created' );
+    }
+
+    private static function action_delete_subject() {
+        $subject_id = self::get_post_int( 'subject_id' );
+        if ( ! $subject_id ) {
+            return;
+        }
+
+        // Delete all topics (and their replies) in this subject.
+        $topic_ids = get_posts( array(
+            'post_type'      => FHB_Constants::POST_TYPE_TOPIC,
+            'post_status'    => 'any',
+            'posts_per_page' => -1,
+            'meta_key'       => FHB_Constants::META_SUBJECT_ID,
+            'meta_value'     => $subject_id,
+            'fields'         => 'ids',
+        ) );
+
+        foreach ( $topic_ids as $topic_id ) {
+            $replies = self::get_topic_reply_ids( $topic_id );
+            foreach ( $replies as $reply_id ) {
+                wp_delete_post( $reply_id, true );
+            }
+            self::clean_topic_db_records( $topic_id );
+            wp_delete_post( $topic_id, true );
+        }
+
+        wp_delete_post( $subject_id, true );
+
+        self::redirect_with_message( 'fh-boards', 'subject_deleted' );
+    }
 
     private static function action_delete_topic() {
         $topic_id = self::get_post_int( 'topic_id' );
@@ -246,6 +317,10 @@ class FHB_Admin {
     /* ------------------------------------------------------------------
      * Page callbacks
      * ----------------------------------------------------------------*/
+
+    public static function page_subjects() {
+        include FHB_PLUGIN_DIR . 'admin/views/subjects.php';
+    }
 
     public static function page_topics() {
         include FHB_PLUGIN_DIR . 'admin/views/topics.php';

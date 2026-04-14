@@ -10,12 +10,33 @@ if ( ! defined( 'ABSPATH' ) ) {
 class FHB_Post_Types {
 
     public static function register() {
+        self::register_subject();
         self::register_topic();
         self::register_reply();
 
         // Prevent fhb_topic/fhb_reply from appearing in the main site search
         // (they have no public URLs, so results would be dead links).
         add_action( 'pre_get_posts', array( __CLASS__, 'exclude_from_site_search' ) );
+    }
+
+    private static function register_subject() {
+        register_post_type( FHB_Constants::POST_TYPE_SUBJECT, array(
+            'labels' => array(
+                'name'               => 'Subjects',
+                'singular_name'      => 'Subject',
+                'add_new'            => 'Add New Subject',
+                'add_new_item'       => 'Add New Subject',
+                'edit_item'          => 'Edit Subject',
+                'not_found'          => 'No subjects found',
+            ),
+            'public'              => false,
+            'exclude_from_search' => true,
+            'show_ui'             => false,
+            'show_in_rest'        => false,
+            'supports'            => array( 'title', 'editor' ),
+            'has_archive'         => false,
+            'rewrite'             => false,
+        ) );
     }
 
     private static function register_topic() {
@@ -83,6 +104,7 @@ class FHB_Post_Types {
         }
 
         $public_types = get_post_types( array( 'public' => true ) );
+        unset( $public_types[ FHB_Constants::POST_TYPE_SUBJECT ] );
         unset( $public_types[ FHB_Constants::POST_TYPE_TOPIC ] );
         unset( $public_types[ FHB_Constants::POST_TYPE_REPLY ] );
 
