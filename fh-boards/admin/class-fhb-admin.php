@@ -16,6 +16,7 @@ class FHB_Admin {
         add_action( 'admin_menu', array( __CLASS__, 'register_menu' ) );
         add_action( 'admin_init', array( __CLASS__, 'handle_actions' ) );
         add_action( 'admin_init', array( __CLASS__, 'register_settings' ) );
+        add_action( 'wp_ajax_fhb_reorder_topics', array( __CLASS__, 'ajax_reorder_topics' ) );
     }
 
     /* ------------------------------------------------------------------
@@ -305,6 +306,28 @@ class FHB_Admin {
         }
         $sent = FHB_Notifications::send_manual_notification( $thread_id );
         self::redirect_with_message( 'fh-boards-notify', 'notification_sent', array( 'count' => $sent ) );
+    }
+
+    /* ------------------------------------------------------------------
+     * AJAX: Drag-and-drop topic reordering
+     * ----------------------------------------------------------------*/
+
+    public static function ajax_reorder_topics() {
+        check_ajax_referer( 'fhb_reorder_topics', 'nonce' );
+
+        if ( ! current_user_can( FHB_Constants::ADMIN_CAP ) ) {
+            wp_send_json_error();
+        }
+
+        $order = isset( $_POST['order'] ) ? array_map( 'absint', $_POST['order'] ) : array();
+
+        foreach ( $order as $index => $topic_cat_id ) {
+            if ( $topic_cat_id ) {
+                update_post_meta( $topic_cat_id, FHB_Constants::META_SORT_ORDER, $index );
+            }
+        }
+
+        wp_send_json_success();
     }
 
     /* ------------------------------------------------------------------
