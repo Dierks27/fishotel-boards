@@ -2,7 +2,7 @@
 /**
  * Plugin Name: FH Boards
  * Description: A lightweight private beta tester forum for FisHotel.
- * Version:     1.6.3
+ * Version:     1.6.4
  * Author:      FisHotel
  * Text Domain: fh-boards
  */
@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'FHB_VERSION', '1.6.3' );
+define( 'FHB_VERSION', '1.6.4' );
 define( 'FHB_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FHB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
@@ -80,15 +80,27 @@ function fhb_enqueue_public_assets() {
 add_action( 'wp_enqueue_scripts', 'fhb_enqueue_public_assets' );
 
 /* ------------------------------------------------------------------
- * Plugin row meta – "Check for Updates" link on Plugins page
+ * Plugin row meta – "Check for Updates" link on Plugins page.
+ * Clears the GitHub version cache so the check is fresh.
  * ----------------------------------------------------------------*/
 function fhb_plugin_row_meta( $links, $file ) {
     if ( plugin_basename( __FILE__ ) === $file ) {
-        $links[] = '<a href="' . esc_url( self_admin_url( 'update-core.php?force-check=1' ) ) . '">' . esc_html__( 'Check for Updates', 'fh-boards' ) . '</a>';
+        $url     = wp_nonce_url( self_admin_url( 'update-core.php?force-check=1&fhb_clear_cache=1' ), 'fhb_clear_cache' );
+        $links[] = '<a href="' . esc_url( $url ) . '">' . esc_html__( 'Check for Updates', 'fh-boards' ) . '</a>';
     }
     return $links;
 }
 add_filter( 'plugin_row_meta', 'fhb_plugin_row_meta', 10, 2 );
+
+/**
+ * Clear the GitHub update cache when "Check for Updates" is clicked.
+ */
+function fhb_maybe_clear_update_cache() {
+    if ( isset( $_GET['fhb_clear_cache'] ) && wp_verify_nonce( $_GET['_wpnonce'], 'fhb_clear_cache' ) ) {
+        FHB_Updater::clear_cache();
+    }
+}
+add_action( 'admin_init', 'fhb_maybe_clear_update_cache' );
 
 /* ------------------------------------------------------------------
  * Enqueue admin assets

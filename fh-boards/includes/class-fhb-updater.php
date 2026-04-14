@@ -1,9 +1,10 @@
 <?php
 /**
- * FHB_Updater – Check GitHub releases for plugin updates.
+ * FHB_Updater – Check GitHub for plugin updates.
  *
- * Hooks into the WordPress update system so the plugin can be updated
- * directly from GitHub releases, no wordpress.org listing required.
+ * Reads the Version header directly from fh-boards.php on the main
+ * branch—no GitHub releases required. Push a version bump to main
+ * and WordPress will see the update.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -15,17 +16,23 @@ class FHB_Updater {
     /** GitHub owner/repo. */
     private static $repo = 'Dierks27/fishotel-boards';
 
+    /** Branch to check for updates. */
+    private static $branch = 'main';
+
+    /** Path to the main plugin file inside the repo. */
+    private static $remote_plugin_file = 'fh-boards/fh-boards.php';
+
     /** Plugin basename (e.g. fh-boards/fh-boards.php). */
     private static $plugin_basename;
 
     /** Plugin slug (directory name). */
     private static $slug = 'fh-boards';
 
-    /** Transient key for caching the GitHub response. */
+    /** Transient key for caching the remote version check. */
     private static $cache_key = 'fhb_github_update';
 
-    /** Cache lifetime in seconds (12 hours). */
-    private static $cache_ttl = 43200;
+    /** Cache lifetime in seconds (6 hours). */
+    private static $cache_ttl = 21600;
 
     public static function init() {
         self::$plugin_basename = plugin_basename( FHB_PLUGIN_DIR . 'fh-boards.php' );
@@ -36,58 +43,50 @@ class FHB_Updater {
     }
 
     /**
-     * Query the GitHub API for the latest release. Result is cached.
+     * Fetch the remote version from the main branch. Result is cached.
+     *
+     * Returns an array with 'version' and 'download_url', or false on failure.
      */
-    private static function fetch_release() {
+    private static function fetch_remote_version() {
         $cached = get_transient( self::$cache_key );
         if ( false !== $cached ) {
             return $cached;
         }
 
-        $url      = 'https://api.github.com/repos/' . self::$repo . '/releases/latest';
-        $response = wp_remote_get( $url, array(
-            'headers' => array(
-                'Accept' => 'application/vnd.github.v3+json',
-            ),
-            'timeout' => 10,
-        ) );
+        // Fetch the raw plugin header file from the main branch.
+        $raw_url  = 'https://raw.githubusercontent.com/' . self::$repo . '/' . self::$branch . '/' . self::$remote_plugin_file;
+        $response = wp_remote_get( $raw_url, array( 'timeout' => 10 ) );
 
         if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
             return false;
         }
 
-        $release = json_decode( wp_remote_retrieve_body( $response ), true );
-        if ( empty( $release['tag_name'] ) ) {
+        $body = wp_remote_retrieve_body( $response );
+
+        // Parse the Version header from the file contents.
+        if ( ! preg_match( '/^\s*\*?\s*Version:\s*(.+)$/mi', $body, $matches ) ) {
             return false;
         }
 
-        set_transient( self::$cache_key, $release, self::$cache_ttl );
+        $remote_version = trim( $matches[1] );
+        $download_url   = 'https://api.github.com/repos/' . self::$repo . '/zipball/' . self::$branch;
 
-        return $release;
+        $data = array(
+            'version'      => $remote_version,
+            'download_url' => $download_url,
+        );
+
+        set_transient( self::$cache_key, $data, self::$cache_ttl );
+
+        return $data;
     }
 
     /**
-     * Extract a clean version string from the release tag (strip leading "v").
+     * Clear the cached remote version (called when the user clicks
+     * "Check for Updates" on the plugins page).
      */
-    private static function tag_to_version( $tag ) {
-        return ltrim( $tag, 'vV' );
-    }
-
-    /**
-     * Get the best download URL for a release.
-     *
-     * Prefers a pre-built zip asset named fh-boards*.zip over the
-     * GitHub source zipball (which requires directory renaming).
-     */
-    private static function get_download_url( $release ) {
-        if ( ! empty( $release['assets'] ) ) {
-            foreach ( $release['assets'] as $asset ) {
-                if ( preg_match( '/^fh-boards.*\.zip$/i', $asset['name'] ) ) {
-                    return $asset['browser_download_url'];
-                }
-            }
-        }
-        return $release['zipball_url'];
+    public static function clear_cache() {
+        delete_transient( self::$cache_key );
     }
 
     /**
@@ -98,19 +97,17 @@ class FHB_Updater {
             return $transient;
         }
 
-        $release = self::fetch_release();
-        if ( ! $release ) {
+        $remote = self::fetch_remote_version();
+        if ( ! $remote ) {
             return $transient;
         }
 
-        $remote_version = self::tag_to_version( $release['tag_name'] );
-
-        if ( version_compare( FHB_VERSION, $remote_version, '<' ) ) {
+        if ( version_compare( FHB_VERSION, $remote['version'], '<' ) ) {
             $transient->response[ self::$plugin_basename ] = (object) array(
                 'slug'        => self::$slug,
                 'plugin'      => self::$plugin_basename,
-                'new_version' => $remote_version,
-                'package'     => self::get_download_url( $release ),
+                'new_version' => $remote['version'],
+                'package'     => $remote['download_url'],
                 'url'         => 'https://github.com/' . self::$repo,
             );
         }
@@ -126,23 +123,21 @@ class FHB_Updater {
             return $result;
         }
 
-        $release = self::fetch_release();
-        if ( ! $release ) {
+        $remote = self::fetch_remote_version();
+        if ( ! $remote ) {
             return $result;
         }
-
-        $remote_version = self::tag_to_version( $release['tag_name'] );
 
         return (object) array(
             'name'          => 'FH Boards',
             'slug'          => self::$slug,
-            'version'       => $remote_version,
+            'version'       => $remote['version'],
             'author'        => '<a href="https://github.com/' . self::$repo . '">FisHotel</a>',
             'homepage'      => 'https://github.com/' . self::$repo,
-            'download_link' => self::get_download_url( $release ),
+            'download_link' => $remote['download_url'],
             'sections'      => array(
                 'description' => 'A lightweight private beta tester forum for FisHotel.',
-                'changelog'   => nl2br( esc_html( $release['body'] ?? '' ) ),
+                'changelog'   => 'See the <a href="https://github.com/' . self::$repo . '/commits/main">commit history</a> for changes.',
             ),
         );
     }
