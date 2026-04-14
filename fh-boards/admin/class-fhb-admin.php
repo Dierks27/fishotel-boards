@@ -12,6 +12,7 @@ class FHB_Admin {
     public static function init() {
         add_action( 'admin_menu', array( __CLASS__, 'register_menu' ) );
         add_action( 'admin_init', array( __CLASS__, 'handle_actions' ) );
+        add_action( 'admin_init', array( __CLASS__, 'register_settings' ) );
     }
 
     /**
@@ -62,6 +63,15 @@ class FHB_Admin {
             'manage_options',
             'fh-boards-notify',
             array( __CLASS__, 'page_notify' )
+        );
+
+        add_submenu_page(
+            'fh-boards',
+            'Settings',
+            'Settings',
+            'manage_options',
+            'fh-boards-settings',
+            array( __CLASS__, 'page_settings' )
         );
     }
 
@@ -229,6 +239,17 @@ class FHB_Admin {
     }
 
     /* ------------------------------------------------------------------
+     * Settings registration
+     * ----------------------------------------------------------------*/
+    public static function register_settings() {
+        register_setting( 'fhb_settings', 'fhb_delete_data_on_uninstall', array(
+            'type'              => 'boolean',
+            'default'           => false,
+            'sanitize_callback' => 'rest_sanitize_boolean',
+        ) );
+    }
+
+    /* ------------------------------------------------------------------
      * Page callbacks
      * ----------------------------------------------------------------*/
 
@@ -246,5 +267,9 @@ class FHB_Admin {
 
     public static function page_notify() {
         include FHB_PLUGIN_DIR . 'admin/views/notify.php';
+    }
+
+    public static function page_settings() {
+        include FHB_PLUGIN_DIR . 'admin/views/settings.php';
     }
 }

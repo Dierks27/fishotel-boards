@@ -223,6 +223,13 @@
         }, function (res) {
             if (res.success) {
                 $content.html(res.data.html);
+                // Insert or update the edited stamp.
+                var $stamp = $post.find('.fhb-edited-stamp');
+                if ($stamp.length) {
+                    $stamp.replaceWith(res.data.edited_stamp);
+                } else {
+                    $content.after(res.data.edited_stamp);
+                }
                 $actions.html($actions.data('original-html'));
             } else {
                 alert(res.data.message);

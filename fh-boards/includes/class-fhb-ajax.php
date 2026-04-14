@@ -112,13 +112,13 @@ class FHB_Ajax {
         // Build reply HTML for live-append.
         $author_id   = get_current_user_id();
         $author_name = get_the_author_meta( 'display_name', $author_id );
-        $avatar      = get_avatar( $author_id, 40 );
         $date        = get_the_date( '', $reply_id );
         $time        = get_the_time( '', $reply_id );
 
         $html  = '<div class="fhb-post fhb-reply-post" data-post-id="' . esc_attr( $reply_id ) . '">';
-        $html .= '<div class="fhb-post-author">' . $avatar;
-        $html .= '<strong data-initial="' . esc_attr( mb_strtoupper( mb_substr( $author_name, 0, 1 ) ) ) . '">' . esc_html( $author_name ) . '</strong>';
+        $html .= '<div class="fhb-post-author">';
+        $html .= '<span class="fhb-fish-icon">&#x1F41F;</span>';
+        $html .= '<strong>' . esc_html( $author_name ) . '</strong>';
         $html .= '<span class="fhb-post-date">' . esc_html( $date ) . ' at ' . esc_html( $time ) . '</span>';
         $html .= '</div>';
         $html .= '<div class="fhb-post-content">' . wp_kses_post( wpautop( $content ) ) . '</div>';
@@ -160,18 +160,24 @@ class FHB_Ajax {
             wp_send_json_error( array( 'message' => 'You do not have permission to edit this post.' ) );
         }
 
+        $now = current_time( 'mysql' );
         $result = wp_update_post( array(
-            'ID'           => $post_id,
-            'post_content' => $content,
+            'ID'                => $post_id,
+            'post_content'      => $content,
+            'post_modified'     => $now,
+            'post_modified_gmt' => current_time( 'mysql', true ),
         ), true );
 
         if ( is_wp_error( $result ) ) {
             wp_send_json_error( array( 'message' => 'Could not update post.' ) );
         }
 
+        $edited_stamp = '<span class="fhb-edited-stamp">(edited ' . esc_html( mysql2date( get_option( 'date_format' ), $now ) ) . ')</span>';
+
         wp_send_json_success( array(
-            'message' => 'Post updated.',
-            'html'    => wp_kses_post( wpautop( $content ) ),
+            'message'      => 'Post updated.',
+            'html'         => wp_kses_post( wpautop( $content ) ),
+            'edited_stamp' => $edited_stamp,
         ) );
     }
 
