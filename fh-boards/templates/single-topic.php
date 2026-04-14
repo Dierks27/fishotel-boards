@@ -12,14 +12,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $topic_cat_id = get_post_meta( $topic->ID, FHB_Constants::META_TOPIC_CAT_ID, true );
 $base_url     = remove_query_arg( array( 'fhb_subject', 'fhb_topic_cat', 'fhb_topic', 'fhb_paged' ) );
-$back_url     = $topic_cat_id ? add_query_arg( 'fhb_topic_cat', $topic_cat_id, $base_url ) : $base_url;
 $topic_cat    = $topic_cat_id ? get_post( $topic_cat_id ) : null;
-$back_label   = $topic_cat ? $topic_cat->post_title : 'Boards';
+$subject_id   = $topic_cat ? get_post_meta( $topic_cat->ID, FHB_Constants::META_SUBJECT_ID, true ) : 0;
+$subject      = $subject_id ? get_post( $subject_id ) : null;
+
+$crumbs = array( array( 'label' => 'Boards', 'url' => $base_url ) );
+if ( $subject ) {
+    $crumbs[] = array( 'label' => $subject->post_title, 'url' => add_query_arg( 'fhb_subject', $subject->ID, $base_url ) );
+}
+if ( $topic_cat ) {
+    $crumbs[] = array( 'label' => $topic_cat->post_title, 'url' => add_query_arg( 'fhb_topic_cat', $topic_cat->ID, $base_url ) );
+}
+$crumbs[] = array( 'label' => $topic->post_title );
 ?>
 <div class="fhb-single-topic-wrap">
-    <div class="fhb-back-link">
-        <a href="<?php echo esc_url( $back_url ); ?>">&laquo; Back to <?php echo esc_html( $back_label ); ?></a>
-    </div>
+    <?php fhb_render_breadcrumbs( $crumbs ); ?>
 
     <div class="fhb-topic-header">
         <h2><?php echo esc_html( $topic->post_title ); ?></h2>

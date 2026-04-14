@@ -12,13 +12,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $base_url    = remove_query_arg( array( 'fhb_subject', 'fhb_topic_cat', 'fhb_topic', 'fhb_paged' ) );
 $subject_id  = get_post_meta( $topic_cat->ID, FHB_Constants::META_SUBJECT_ID, true );
-$back_url    = $subject_id ? add_query_arg( 'fhb_subject', $subject_id, $base_url ) : $base_url;
-$back_label  = $subject ? $subject->post_title : 'Boards';
+$subject_url = $subject_id ? add_query_arg( 'fhb_subject', $subject_id, $base_url ) : $base_url;
 ?>
 <div class="fhb-board-wrap">
-    <div class="fhb-back-link">
-        <a href="<?php echo esc_url( $back_url ); ?>">&laquo; Back to <?php echo esc_html( $back_label ); ?></a>
-    </div>
+    <?php fhb_render_breadcrumbs( array(
+        array( 'label' => 'Boards', 'url' => $base_url ),
+        array( 'label' => $subject ? $subject->post_title : 'Subject', 'url' => $subject_url ),
+        array( 'label' => $topic_cat->post_title ),
+    ) ); ?>
 
     <div class="fhb-board-header">
         <h2><?php echo esc_html( $topic_cat->post_title ); ?></h2>
