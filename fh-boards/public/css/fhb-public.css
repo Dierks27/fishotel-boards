@@ -114,6 +114,72 @@
 }
 
 /* =====================================================================
+   Topic Search
+   ===================================================================== */
+.fhb-search-wrap {
+    position: relative;
+    margin-bottom: 16px;
+}
+
+.fhb-search-input {
+    width: 100%;
+    padding: 8px 36px 8px 12px;
+    border: 1px solid var(--fhb-border);
+    border-radius: var(--fhb-radius);
+    font-size: 14px;
+    box-sizing: border-box;
+    background: var(--fhb-input-bg);
+    color: var(--fhb-text);
+    transition: border-color 0.15s;
+}
+
+.fhb-search-input::placeholder {
+    color: var(--fhb-text-muted);
+}
+
+.fhb-search-input:focus {
+    outline: none;
+    border-color: var(--fhb-accent);
+    box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.25);
+}
+
+.fhb-search-clear {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    color: var(--fhb-text-muted);
+    padding: 2px 6px;
+    transition: color 0.15s;
+}
+
+.fhb-search-clear:hover {
+    color: var(--fhb-accent);
+}
+
+.fhb-search-loading {
+    font-size: 13px;
+    font-style: italic;
+    color: var(--fhb-text-muted);
+    padding: 6px 0;
+}
+
+.fhb-search-results {
+    margin-bottom: 16px;
+}
+
+mark.fhb-highlight {
+    background: rgba(201, 168, 76, 0.3);
+    color: inherit;
+    border-radius: 2px;
+}
+
+/* =====================================================================
    Topic List (Board View)
    ===================================================================== */
 .fhb-topic-list {

@@ -14,6 +14,7 @@ class FHB_Ajax {
         add_action( 'wp_ajax_fhb_new_topic', array( __CLASS__, 'new_topic' ) );
         add_action( 'wp_ajax_fhb_new_reply', array( __CLASS__, 'new_reply' ) );
         add_action( 'wp_ajax_fhb_edit_post', array( __CLASS__, 'edit_post' ) );
+        add_action( 'wp_ajax_fhb_search', array( __CLASS__, 'search' ) );
         add_action( 'wp_ajax_fhb_subscribe', array( __CLASS__, 'subscribe' ) );
         add_action( 'wp_ajax_fhb_unsubscribe', array( __CLASS__, 'unsubscribe' ) );
         add_action( 'wp_ajax_fhb_enable_notifications', array( __CLASS__, 'enable_notifications' ) );
@@ -179,6 +180,50 @@ class FHB_Ajax {
             'html'         => wp_kses_post( wpautop( $content ) ),
             'edited_stamp' => $edited_stamp,
         ) );
+    }
+
+    /* ------------------------------------------------------------------
+     * Search topics.
+     * ----------------------------------------------------------------*/
+    public static function search() {
+        check_ajax_referer( 'fhb_nonce', 'nonce' );
+
+        if ( ! is_user_logged_in() ) {
+            wp_send_json_error( array( 'message' => 'You must be logged in.' ) );
+        }
+
+        $query = isset( $_POST['query'] ) ? sanitize_text_field( wp_unslash( $_POST['query'] ) ) : '';
+
+        if ( mb_strlen( $query ) < 2 ) {
+            wp_send_json_error( array( 'message' => 'Query too short.' ) );
+        }
+
+        $results = new WP_Query( array(
+            'post_type'      => 'fhb_topic',
+            'post_status'    => 'publish',
+            's'              => $query,
+            'posts_per_page' => 20,
+            'orderby'        => 'relevance',
+        ) );
+
+        $topics = array();
+        if ( $results->have_posts() ) {
+            while ( $results->have_posts() ) {
+                $results->the_post();
+                $tid = get_the_ID();
+                $topics[] = array(
+                    'post_id'      => $tid,
+                    'title'        => get_the_title(),
+                    'author_name'  => get_the_author(),
+                    'date'         => get_the_date(),
+                    'reply_count'  => absint( get_post_meta( $tid, '_fhb_reply_count', true ) ),
+                    'is_closed'    => get_post_meta( $tid, '_fhb_closed', true ) === '1',
+                );
+            }
+            wp_reset_postdata();
+        }
+
+        wp_send_json_success( array( 'topics' => $topics ) );
     }
 
     /* ------------------------------------------------------------------

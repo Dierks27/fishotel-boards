@@ -19,6 +19,13 @@ if ( ! defined( 'ABSPATH' ) ) {
         <?php include FHB_PLUGIN_DIR . 'templates/forms/new-topic.php'; ?>
     </div>
 
+    <div class="fhb-search-wrap">
+        <input type="text" class="fhb-search-input" placeholder="Search topics..." autocomplete="off" />
+        <button type="button" class="fhb-search-clear" style="display:none;">&times;</button>
+        <div class="fhb-search-loading" style="display:none;">Searching...</div>
+    </div>
+    <div class="fhb-search-results" style="display:none;"></div>
+
     <?php if ( $topics->have_posts() ) : ?>
         <div class="fhb-topic-list">
             <?php while ( $topics->have_posts() ) : $topics->the_post(); ?>

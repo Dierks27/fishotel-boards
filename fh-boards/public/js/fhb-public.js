@@ -8,6 +8,98 @@
     'use strict';
 
     /* ------------------------------------------------------------------
+     * Topic Search (AJAX, debounced)
+     * ----------------------------------------------------------------*/
+    var fhbSearchTimer = null;
+
+    function fhbBuildTopicUrl(postId) {
+        var url = window.location.href.split('?')[0];
+        var params = new URLSearchParams(window.location.search);
+        params.delete('fhb_topic');
+        params.delete('fhb_paged');
+        params.set('fhb_topic', postId);
+        return url + '?' + params.toString();
+    }
+
+    function fhbHighlight(text, query) {
+        if (!query) return $('<div>').text(text).html();
+        var escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        var safe    = $('<div>').text(text).html();
+        return safe.replace(new RegExp('(' + escaped + ')', 'gi'),
+            '<mark class="fhb-highlight">$1</mark>');
+    }
+
+    $(document).on('input', '.fhb-search-input', function () {
+        var $input   = $(this);
+        var query    = $.trim($input.val());
+        var $clear   = $input.siblings('.fhb-search-clear');
+        var $loading = $input.siblings('.fhb-search-loading');
+        var $results = $('.fhb-search-results');
+        var $list    = $('.fhb-topic-list');
+        var $pag     = $('.fhb-pagination');
+        var $empty   = $('.fhb-no-topics');
+
+        // Show/hide clear button.
+        $clear.toggle(query.length > 0);
+
+        clearTimeout(fhbSearchTimer);
+
+        if (query.length < 2) {
+            $results.hide().empty();
+            $list.show();
+            $pag.show();
+            $empty.show();
+            $loading.hide();
+            return;
+        }
+
+        $loading.show();
+
+        fhbSearchTimer = setTimeout(function () {
+            $.post(fhb_ajax.ajax_url, {
+                action: 'fhb_search',
+                nonce:  fhb_ajax.nonce,
+                query:  query
+            }, function (res) {
+                $loading.hide();
+                $list.hide();
+                $pag.hide();
+                $empty.hide();
+
+                if (res.success && res.data.topics.length) {
+                    var html = '';
+                    $.each(res.data.topics, function (i, t) {
+                        var cls = t.is_closed ? ' fhb-closed' : '';
+                        var rc  = t.reply_count === 1 ? '1 reply' : t.reply_count + ' replies';
+                        html += '<div class="fhb-topic-row' + cls + '">';
+                        html += '<div class="fhb-topic-title">';
+                        html += '<a href="' + fhbBuildTopicUrl(t.post_id) + '">' + fhbHighlight(t.title, query) + '</a>';
+                        if (t.is_closed) html += ' <span class="fhb-badge fhb-badge-closed">Closed</span>';
+                        html += '</div>';
+                        html += '<div class="fhb-topic-meta">';
+                        html += '<span class="fhb-topic-author">by ' + $('<span>').text(t.author_name).html() + '</span>';
+                        html += '<span class="fhb-topic-replies">' + rc + '</span>';
+                        html += '</div></div>';
+                    });
+                    $results.html(html).show();
+                } else {
+                    $results.html(
+                        '<p class="fhb-no-topics">No topics found for \'' +
+                        $('<span>').text(query).html() + '\'</p>'
+                    ).show();
+                }
+            }).fail(function () {
+                $loading.hide();
+            });
+        }, 350);
+    });
+
+    $(document).on('click', '.fhb-search-clear', function () {
+        var $wrap = $(this).closest('.fhb-search-wrap');
+        $wrap.find('.fhb-search-input').val('').trigger('input');
+    });
+
+    /* ------------------------------------------------------------------
      * Toggle new-topic form
      * ----------------------------------------------------------------*/
     $(document).on('click', '.fhb-new-topic-toggle', function () {
