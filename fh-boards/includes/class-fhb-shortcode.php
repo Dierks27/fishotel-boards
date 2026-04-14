@@ -70,10 +70,14 @@ class FHB_Shortcode {
             'post_type'      => FHB_Constants::POST_TYPE_TOPIC_CAT,
             'post_status'    => 'publish',
             'posts_per_page' => -1,
-            'orderby'        => 'title',
-            'order'          => 'ASC',
-            'meta_key'       => FHB_Constants::META_SUBJECT_ID,
-            'meta_value'     => $subject_id,
+            'meta_key'       => FHB_Constants::META_SORT_ORDER,
+            'orderby'        => array( 'meta_value_num' => 'ASC', 'title' => 'ASC' ),
+            'meta_query'     => array(
+                array(
+                    'key'   => FHB_Constants::META_SUBJECT_ID,
+                    'value' => $subject_id,
+                ),
+            ),
         ) );
 
         include FHB_PLUGIN_DIR . 'templates/topic-list.php';

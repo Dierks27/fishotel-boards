@@ -248,7 +248,9 @@ class FHB_Ajax {
     public static function search() {
         self::verify_request();
 
-        $query = isset( $_POST['query'] ) ? sanitize_text_field( wp_unslash( $_POST['query'] ) ) : '';
+        $query  = isset( $_POST['query'] ) ? sanitize_text_field( wp_unslash( $_POST['query'] ) ) : '';
+        $offset = isset( $_POST['offset'] ) ? absint( $_POST['offset'] ) : 0;
+        $limit  = 10;
 
         if ( mb_strlen( $query ) < 2 ) {
             wp_send_json_error( array( 'message' => 'Query too short.' ) );
@@ -283,16 +285,18 @@ class FHB_Ajax {
             }
         }
 
-        // Build the response from unique topic IDs.
-        $topic_ids = array_keys( $found_topic_ids );
-        $topics    = array();
+        // Build the response from unique topic IDs, applying offset + limit.
+        $all_topic_ids = array_keys( $found_topic_ids );
+        $total_found   = count( $all_topic_ids );
+        $paged_ids     = array_slice( $all_topic_ids, $offset, $limit );
+        $topics        = array();
 
-        if ( ! empty( $topic_ids ) ) {
+        if ( ! empty( $paged_ids ) ) {
             $ordered = new WP_Query( array(
                 'post_type'      => FHB_Constants::POST_TYPE_TOPIC,
                 'post_status'    => 'publish',
-                'post__in'       => $topic_ids,
-                'posts_per_page' => 20,
+                'post__in'       => $paged_ids,
+                'posts_per_page' => $limit,
                 'orderby'        => 'post__in',
             ) );
 
@@ -342,7 +346,10 @@ class FHB_Ajax {
             wp_reset_postdata();
         }
 
-        wp_send_json_success( array( 'topics' => $topics ) );
+        wp_send_json_success( array(
+            'topics'   => $topics,
+            'has_more' => ( $offset + $limit ) < $total_found,
+        ) );
     }
 
     /* ------------------------------------------------------------------

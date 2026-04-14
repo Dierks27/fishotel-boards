@@ -21,8 +21,8 @@ $topic_cats = get_posts( array(
     'post_type'      => FHB_Constants::POST_TYPE_TOPIC_CAT,
     'post_status'    => 'publish',
     'posts_per_page' => -1,
-    'orderby'        => 'title',
-    'order'          => 'ASC',
+    'meta_key'       => FHB_Constants::META_SORT_ORDER,
+    'orderby'        => array( 'meta_value_num' => 'ASC', 'title' => 'ASC' ),
 ) );
 ?>
 <div class="wrap fhb-admin-wrap">
@@ -61,6 +61,13 @@ $topic_cats = get_posts( array(
                     <th><label for="fhb_topic_description">Description <small>(optional)</small></label></th>
                     <td><textarea id="fhb_topic_description" name="topic_description" class="large-text" rows="2" placeholder="Brief description&hellip;"></textarea></td>
                 </tr>
+                <tr>
+                    <th><label for="fhb_sort_order">Sort Order</label></th>
+                    <td>
+                        <input type="number" id="fhb_sort_order" name="sort_order" class="small-text" value="0" min="0" step="1" />
+                        <p class="description">Lower numbers appear first. Topics with the same order are sorted alphabetically.</p>
+                    </td>
+                </tr>
             </table>
             <?php submit_button( 'Create Topic', 'primary' ); ?>
         </form>
@@ -74,10 +81,11 @@ $topic_cats = get_posts( array(
             <thead>
                 <tr>
                     <th style="width:5%;">ID</th>
-                    <th style="width:25%;">Topic</th>
-                    <th style="width:25%;">Subject</th>
-                    <th style="width:15%;">Description</th>
-                    <th style="width:10%;">Threads</th>
+                    <th style="width:22%;">Topic</th>
+                    <th style="width:20%;">Subject</th>
+                    <th style="width:8%;">Order</th>
+                    <th style="width:12%;">Description</th>
+                    <th style="width:8%;">Threads</th>
                     <th style="width:10%;">Created</th>
                     <th style="width:10%;">Actions</th>
                 </tr>
@@ -87,6 +95,7 @@ $topic_cats = get_posts( array(
                     <?php
                     $sid          = get_post_meta( $tc->ID, FHB_Constants::META_SUBJECT_ID, true );
                     $subject_name = $sid ? get_the_title( $sid ) : '(none)';
+                    $sort_order   = absint( get_post_meta( $tc->ID, FHB_Constants::META_SORT_ORDER, true ) );
                     $thread_count = absint( get_post_meta( $tc->ID, FHB_Constants::META_THREAD_COUNT, true ) );
                     $excerpt      = wp_trim_words( $tc->post_content, 10, '&hellip;' );
                     ?>
@@ -94,6 +103,7 @@ $topic_cats = get_posts( array(
                         <td><?php echo esc_html( $tc->ID ); ?></td>
                         <td><strong><?php echo esc_html( $tc->post_title ); ?></strong></td>
                         <td><?php echo esc_html( $subject_name ); ?></td>
+                        <td><?php echo esc_html( $sort_order ); ?></td>
                         <td><?php echo esc_html( $excerpt ); ?></td>
                         <td><?php echo esc_html( $thread_count ); ?></td>
                         <td><?php echo esc_html( get_the_date( '', $tc ) ); ?></td>
