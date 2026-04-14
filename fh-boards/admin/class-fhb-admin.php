@@ -161,6 +161,7 @@ class FHB_Admin {
         $subject_id  = self::get_post_int( 'subject_id' );
         $title       = isset( $_POST['topic_title'] ) ? sanitize_text_field( wp_unslash( $_POST['topic_title'] ) ) : '';
         $description = isset( $_POST['topic_description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['topic_description'] ) ) : '';
+        $sort_order  = self::get_post_int( 'sort_order' );
 
         if ( empty( $title ) || ! $subject_id ) {
             self::redirect_with_message( 'fh-boards-topics', 'topic_error' );
@@ -176,6 +177,7 @@ class FHB_Admin {
 
         if ( ! is_wp_error( $id ) ) {
             update_post_meta( $id, FHB_Constants::META_SUBJECT_ID, $subject_id );
+            update_post_meta( $id, FHB_Constants::META_SORT_ORDER, $sort_order );
             update_post_meta( $id, FHB_Constants::META_THREAD_COUNT, 0 );
             update_post_meta( $id, FHB_Constants::META_LAST_ACTIVITY, current_time( 'mysql', true ) );
 

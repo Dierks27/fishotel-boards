@@ -24,6 +24,7 @@ class FHB_Constants {
     const META_REPLY_COUNT          = '_fhb_reply_count';
     const META_TOPIC_COUNT          = '_fhb_topic_count';
     const META_THREAD_COUNT         = '_fhb_thread_count';
+    const META_SORT_ORDER           = '_fhb_sort_order';
     const META_LAST_ACTIVITY        = '_fhb_last_activity';
     const META_SUBSCRIBERS          = '_fhb_subscribers';
     const META_CLOSED               = '_fhb_closed';

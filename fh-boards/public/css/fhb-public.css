@@ -732,3 +732,15 @@ mark.fhb-highlight {
     margin-bottom: 16px;
     line-height: 1.4;
 }
+
+/* =====================================================================
+   Show More Button
+   ===================================================================== */
+.fhb-show-more-wrap {
+    text-align: center;
+    margin-top: 16px;
+}
+
+.fhb-show-more-btn {
+    min-width: 180px;
+}

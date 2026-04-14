@@ -73,72 +73,89 @@
             '<mark class="fhb-highlight">$1</mark>');
     }
 
+    /**
+     * Build HTML for a batch of search result items.
+     */
+    function fhbBuildSearchResults(topics, query) {
+        var html = '';
+        $.each(topics, function (i, t) {
+            var cls = t.is_closed ? ' fhb-closed' : '';
+            var rc  = t.reply_count === 1 ? '1 reply' : t.reply_count + ' replies';
+            var topicUrl = fhbBuildTopicUrl(t.post_id, t.topic_cat_id);
+            if (t.reply_id) {
+                topicUrl += '#fhb-post-' + t.reply_id;
+            }
+            html += '<div class="fhb-topic-row' + cls + '">';
+            html += '<div class="fhb-topic-title">';
+            html += '<a href="' + topicUrl + '">' + fhbHighlight(t.title, query) + '</a>';
+            if (t.is_closed) html += ' <span class="fhb-badge fhb-badge-closed">Closed</span>';
+            html += '</div>';
+            if (t.snippet) {
+                html += '<div class="fhb-search-snippet">' + fhbHighlight(t.snippet, query) + '</div>';
+            }
+            html += '<div class="fhb-topic-meta">';
+            if (t.topic_name) {
+                html += '<span class="fhb-topic-subject">' + $('<span>').text(t.topic_name).html() + '</span>';
+            }
+            html += '<span class="fhb-topic-author">by ' + $('<span>').text(t.author_name).html() + '</span>';
+            html += '<span class="fhb-topic-replies">' + rc + '</span>';
+            html += '</div></div>';
+        });
+        return html;
+    }
+
+    /** Elements that should be hidden while search results are visible. */
+    function fhbGetPageContent() {
+        return $('.fhb-subject-list, .fhb-topic-list, .fhb-pagination, .fhb-no-topics, .fhb-board-header, .fhb-subject-desc, .fhb-new-topic-form, .fhb-back-link');
+    }
+
+    var fhbSearchOffset = 0;
+    var fhbLastQuery    = '';
+
     $(document).on('input', '.fhb-search-input', function () {
         var $input   = $(this);
         var query    = $.trim($input.val());
         var $clear   = $input.siblings('.fhb-search-clear');
         var $loading = $input.siblings('.fhb-search-loading');
         var $results = $('.fhb-search-results');
-        var $list    = $('.fhb-topic-list');
-        var $pag     = $('.fhb-pagination');
-        var $empty   = $('.fhb-no-topics');
 
-        // Show/hide clear button.
         $clear.toggle(query.length > 0);
-
         clearTimeout(fhbSearchTimer);
 
         if (query.length < 2) {
             $results.hide().empty();
-            $list.show();
-            $pag.show();
-            $empty.show();
+            fhbGetPageContent().show();
             $loading.hide();
+            fhbSearchOffset = 0;
+            fhbLastQuery = '';
             return;
         }
 
         $loading.show();
+        fhbSearchOffset = 0;
+        fhbLastQuery = query;
 
         fhbSearchTimer = setTimeout(function () {
             $.post(fhb_ajax.ajax_url, {
                 action: 'fhb_search',
                 nonce:  fhb_ajax.nonce,
-                query:  query
+                query:  query,
+                offset: 0
             }, function (res) {
                 $loading.hide();
-                $list.hide();
-                $pag.hide();
-                $empty.hide();
+                fhbGetPageContent().hide();
 
                 if (res.success && res.data.topics.length) {
-                    var html = '';
-                    $.each(res.data.topics, function (i, t) {
-                        var cls = t.is_closed ? ' fhb-closed' : '';
-                        var rc  = t.reply_count === 1 ? '1 reply' : t.reply_count + ' replies';
-                        var topicUrl = fhbBuildTopicUrl(t.post_id, t.topic_cat_id);
-                        if (t.reply_id) {
-                            topicUrl += '#fhb-post-' + t.reply_id;
-                        }
-                        html += '<div class="fhb-topic-row' + cls + '">';
-                        html += '<div class="fhb-topic-title">';
-                        html += '<a href="' + topicUrl + '">' + fhbHighlight(t.title, query) + '</a>';
-                        if (t.is_closed) html += ' <span class="fhb-badge fhb-badge-closed">Closed</span>';
-                        html += '</div>';
-                        if (t.snippet) {
-                            html += '<div class="fhb-search-snippet">' + fhbHighlight(t.snippet, query) + '</div>';
-                        }
-                        html += '<div class="fhb-topic-meta">';
-                        if (t.topic_name) {
-                            html += '<span class="fhb-topic-subject">' + $('<span>').text(t.topic_name).html() + '</span>';
-                        }
-                        html += '<span class="fhb-topic-author">by ' + $('<span>').text(t.author_name).html() + '</span>';
-                        html += '<span class="fhb-topic-replies">' + rc + '</span>';
-                        html += '</div></div>';
-                    });
+                    var html = fhbBuildSearchResults(res.data.topics, query);
+                    fhbSearchOffset = res.data.topics.length;
+
+                    if (res.data.has_more) {
+                        html += '<div class="fhb-show-more-wrap"><button type="button" class="fhb-btn fhb-show-more-btn">Show More Results</button></div>';
+                    }
                     $results.html(html).show();
                 } else {
                     $results.html(
-                        '<p class="fhb-no-topics">No topics found for \'' +
+                        '<p class="fhb-no-topics">No results found for \'' +
                         $('<span>').text(query).html() + '\'</p>'
                     ).show();
                 }
@@ -146,6 +163,35 @@
                 $loading.hide();
             });
         }, 350);
+    });
+
+    // "Show More" button loads the next batch.
+    $(document).on('click', '.fhb-show-more-btn', function () {
+        var $btn     = $(this);
+        var $wrap    = $btn.closest('.fhb-show-more-wrap');
+        var $results = $('.fhb-search-results');
+
+        fhbSetBtn($btn, true, 'Loading\u2026');
+
+        $.post(fhb_ajax.ajax_url, {
+            action: 'fhb_search',
+            nonce:  fhb_ajax.nonce,
+            query:  fhbLastQuery,
+            offset: fhbSearchOffset
+        }, function (res) {
+            $wrap.remove();
+            if (res.success && res.data.topics.length) {
+                var html = fhbBuildSearchResults(res.data.topics, fhbLastQuery);
+                fhbSearchOffset += res.data.topics.length;
+
+                if (res.data.has_more) {
+                    html += '<div class="fhb-show-more-wrap"><button type="button" class="fhb-btn fhb-show-more-btn">Show More Results</button></div>';
+                }
+                $results.append(html);
+            }
+        }).fail(function () {
+            $wrap.remove();
+        });
     });
 
     $(document).on('click', '.fhb-search-clear', function () {
