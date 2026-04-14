@@ -2,7 +2,7 @@
 /**
  * Plugin Name: FH Boards
  * Description: A lightweight private beta tester forum for FisHotel.
- * Version:     1.8.2
+ * Version:     1.8.3
  * Author:      FisHotel
  * Text Domain: fh-boards
  */
@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'FHB_VERSION', '1.8.2' );
+define( 'FHB_VERSION', '1.8.3' );
 define( 'FHB_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FHB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
@@ -80,27 +80,61 @@ function fhb_enqueue_public_assets() {
 add_action( 'wp_enqueue_scripts', 'fhb_enqueue_public_assets' );
 
 /* ------------------------------------------------------------------
- * Plugin row meta – "Check for Updates" link on Plugins page.
- * Clears the GitHub version cache so the check is fresh.
+ * Plugin row meta – Inline "Check for Updates" via AJAX.
  * ----------------------------------------------------------------*/
 function fhb_plugin_row_meta( $links, $file ) {
     if ( plugin_basename( __FILE__ ) === $file ) {
-        $url     = wp_nonce_url( self_admin_url( 'update-core.php?force-check=1&fhb_clear_cache=1' ), 'fhb_clear_cache' );
-        $links[] = '<a href="' . esc_url( $url ) . '">' . esc_html__( 'Check for Updates', 'fh-boards' ) . '</a>';
+        $links[] = '<a href="#" class="fhb-check-update-link">Check for Updates</a>'
+                 . '<span class="fhb-update-status" style="display:none; margin-left:6px;"></span>';
     }
     return $links;
 }
 add_filter( 'plugin_row_meta', 'fhb_plugin_row_meta', 10, 2 );
 
 /**
- * Clear the GitHub update cache when "Check for Updates" is clicked.
+ * Inline script for the "Check for Updates" AJAX link on the plugins page.
  */
-function fhb_maybe_clear_update_cache() {
-    if ( isset( $_GET['fhb_clear_cache'] ) && wp_verify_nonce( $_GET['_wpnonce'], 'fhb_clear_cache' ) ) {
-        FHB_Updater::clear_cache();
+function fhb_plugins_page_script( $hook ) {
+    if ( 'plugins.php' !== $hook ) {
+        return;
     }
+    $nonce = wp_create_nonce( 'fhb_check_update' );
+    ?>
+    <script>
+    jQuery(function ($) {
+        $(document).on('click', '.fhb-check-update-link', function (e) {
+            e.preventDefault();
+            var $link   = $(this);
+            var $status = $link.siblings('.fhb-update-status');
+
+            $link.css('pointer-events', 'none').css('opacity', '0.5');
+            $status.text('Checking\u2026').css('color', '#666').show();
+
+            $.post(ajaxurl, {
+                action: 'fhb_check_update',
+                nonce:  '<?php echo esc_js( $nonce ); ?>'
+            }, function (res) {
+                $link.css('pointer-events', '').css('opacity', '');
+                if (res.success) {
+                    var color = res.data.has_update ? '#d63638' : '#00a32a';
+                    $status.text(res.data.message).css('color', color);
+                    if (res.data.has_update) {
+                        // Nudge WP to refresh the plugin update row.
+                        setTimeout(function () { location.reload(); }, 2000);
+                    }
+                } else {
+                    $status.text(res.data.message || 'Error checking for updates.').css('color', '#d63638');
+                }
+            }).fail(function () {
+                $link.css('pointer-events', '').css('opacity', '');
+                $status.text('Network error.').css('color', '#d63638');
+            });
+        });
+    });
+    </script>
+    <?php
 }
-add_action( 'admin_init', 'fhb_maybe_clear_update_cache' );
+add_action( 'admin_enqueue_scripts', 'fhb_plugins_page_script' );
 
 /* ------------------------------------------------------------------
  * Enqueue admin assets

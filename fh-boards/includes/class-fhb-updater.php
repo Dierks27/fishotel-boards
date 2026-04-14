@@ -40,6 +40,37 @@ class FHB_Updater {
         add_filter( 'pre_set_site_transient_update_plugins', array( __CLASS__, 'check_update' ) );
         add_filter( 'plugins_api', array( __CLASS__, 'plugin_info' ), 10, 3 );
         add_filter( 'upgrader_source_selection', array( __CLASS__, 'fix_source_dir' ), 10, 4 );
+        add_action( 'wp_ajax_fhb_check_update', array( __CLASS__, 'ajax_check_update' ) );
+    }
+
+    /**
+     * AJAX: Check for updates inline (no page redirect).
+     */
+    public static function ajax_check_update() {
+        check_ajax_referer( 'fhb_check_update', 'nonce' );
+
+        if ( ! current_user_can( FHB_Constants::ADMIN_CAP ) ) {
+            wp_send_json_error( array( 'message' => 'Permission denied.' ) );
+        }
+
+        // Clear cache so we get a fresh result.
+        self::clear_cache();
+
+        $remote = self::fetch_remote_version();
+        if ( ! $remote ) {
+            wp_send_json_error( array( 'message' => 'Could not reach GitHub.' ) );
+        }
+
+        $has_update = version_compare( FHB_VERSION, $remote['version'], '<' );
+
+        wp_send_json_success( array(
+            'current'    => FHB_VERSION,
+            'remote'     => $remote['version'],
+            'has_update' => $has_update,
+            'message'    => $has_update
+                ? 'Update available: v' . $remote['version'] . ' (you have v' . FHB_VERSION . ')'
+                : 'You are running the latest version (v' . FHB_VERSION . ').',
+        ) );
     }
 
     /**
