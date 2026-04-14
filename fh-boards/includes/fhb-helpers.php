@@ -45,3 +45,31 @@ function fhb_render_edited_stamp( $post ) {
         <?php
     }
 }
+
+/**
+ * Render breadcrumb navigation.
+ *
+ * Each crumb is an array with 'label' and optional 'url'.
+ * The last crumb is rendered as plain text (current page).
+ *
+ * @param array $crumbs Array of [ 'label' => string, 'url' => string|null ].
+ */
+function fhb_render_breadcrumbs( $crumbs ) {
+    if ( empty( $crumbs ) ) {
+        return;
+    }
+    ?>
+    <nav class="fhb-breadcrumbs">
+        <?php foreach ( $crumbs as $i => $crumb ) : ?>
+            <?php if ( $i > 0 ) : ?>
+                <span class="fhb-breadcrumb-sep">&rsaquo;</span>
+            <?php endif; ?>
+            <?php if ( ! empty( $crumb['url'] ) && $i < count( $crumbs ) - 1 ) : ?>
+                <a href="<?php echo esc_url( $crumb['url'] ); ?>" class="fhb-breadcrumb-link"><?php echo esc_html( $crumb['label'] ); ?></a>
+            <?php else : ?>
+                <span class="fhb-breadcrumb-current"><?php echo esc_html( $crumb['label'] ); ?></span>
+            <?php endif; ?>
+        <?php endforeach; ?>
+    </nav>
+    <?php
+}

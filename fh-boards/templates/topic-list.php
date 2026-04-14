@@ -12,9 +12,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 $base_url = remove_query_arg( array( 'fhb_subject', 'fhb_topic_cat', 'fhb_topic', 'fhb_paged' ) );
 ?>
 <div class="fhb-board-wrap">
-    <div class="fhb-back-link">
-        <a href="<?php echo esc_url( $base_url ); ?>">&laquo; Back to Boards</a>
-    </div>
+    <?php fhb_render_breadcrumbs( array(
+        array( 'label' => 'Boards', 'url' => $base_url ),
+        array( 'label' => $subject->post_title ),
+    ) ); ?>
 
     <div class="fhb-board-header">
         <h2><?php echo esc_html( $subject->post_title ); ?></h2>
