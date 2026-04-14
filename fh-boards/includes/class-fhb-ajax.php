@@ -82,11 +82,11 @@ class FHB_Ajax {
     public static function new_topic() {
         self::verify_request();
 
-        $title      = isset( $_POST['topic_title'] ) ? sanitize_text_field( wp_unslash( $_POST['topic_title'] ) ) : '';
-        $content    = isset( $_POST['topic_content'] ) ? sanitize_textarea_field( wp_unslash( $_POST['topic_content'] ) ) : '';
-        $subject_id = isset( $_POST['subject_id'] ) ? absint( $_POST['subject_id'] ) : 0;
+        $title        = isset( $_POST['topic_title'] ) ? sanitize_text_field( wp_unslash( $_POST['topic_title'] ) ) : '';
+        $content      = isset( $_POST['topic_content'] ) ? sanitize_textarea_field( wp_unslash( $_POST['topic_content'] ) ) : '';
+        $topic_cat_id = isset( $_POST['topic_cat_id'] ) ? absint( $_POST['topic_cat_id'] ) : 0;
 
-        self::require_fields( array( $title, $content, $subject_id ), 'Title, message, and subject are required.' );
+        self::require_fields( array( $title, $content, $topic_cat_id ), 'Title, message, and topic are required.' );
 
         $now = current_time( 'mysql', true );
 
@@ -99,21 +99,27 @@ class FHB_Ajax {
         ), true );
 
         if ( is_wp_error( $topic_id ) ) {
-            wp_send_json_error( array( 'message' => 'Could not create topic.' ) );
+            wp_send_json_error( array( 'message' => 'Could not create thread.' ) );
         }
 
-        update_post_meta( $topic_id, FHB_Constants::META_SUBJECT_ID, $subject_id );
+        update_post_meta( $topic_id, FHB_Constants::META_TOPIC_CAT_ID, $topic_cat_id );
         update_post_meta( $topic_id, FHB_Constants::META_REPLY_COUNT, 0 );
         update_post_meta( $topic_id, FHB_Constants::META_LAST_ACTIVITY, $now );
         update_post_meta( $topic_id, FHB_Constants::META_SUBSCRIBERS, array() );
 
-        // Update subject topic count and last activity.
-        $subject_count = absint( get_post_meta( $subject_id, FHB_Constants::META_TOPIC_COUNT, true ) );
-        update_post_meta( $subject_id, FHB_Constants::META_TOPIC_COUNT, $subject_count + 1 );
-        update_post_meta( $subject_id, FHB_Constants::META_LAST_ACTIVITY, $now );
+        // Update topic_cat thread count and last activity.
+        $thread_count = absint( get_post_meta( $topic_cat_id, FHB_Constants::META_THREAD_COUNT, true ) );
+        update_post_meta( $topic_cat_id, FHB_Constants::META_THREAD_COUNT, $thread_count + 1 );
+        update_post_meta( $topic_cat_id, FHB_Constants::META_LAST_ACTIVITY, $now );
+
+        // Bubble activity up to the subject.
+        $subject_id = get_post_meta( $topic_cat_id, FHB_Constants::META_SUBJECT_ID, true );
+        if ( $subject_id ) {
+            update_post_meta( $subject_id, FHB_Constants::META_LAST_ACTIVITY, $now );
+        }
 
         wp_send_json_success( array(
-            'message'  => 'Topic created.',
+            'message'  => 'Thread created.',
             'topic_id' => $topic_id,
         ) );
     }
@@ -158,10 +164,14 @@ class FHB_Ajax {
         update_post_meta( $topic_id, FHB_Constants::META_REPLY_COUNT, $count + 1 );
         update_post_meta( $topic_id, FHB_Constants::META_LAST_ACTIVITY, $now );
 
-        // Bubble last activity up to the parent subject.
-        $subject_id = get_post_meta( $topic_id, FHB_Constants::META_SUBJECT_ID, true );
-        if ( $subject_id ) {
-            update_post_meta( $subject_id, FHB_Constants::META_LAST_ACTIVITY, $now );
+        // Bubble last activity up through topic_cat → subject.
+        $topic_cat_id = get_post_meta( $topic_id, FHB_Constants::META_TOPIC_CAT_ID, true );
+        if ( $topic_cat_id ) {
+            update_post_meta( $topic_cat_id, FHB_Constants::META_LAST_ACTIVITY, $now );
+            $subject_id = get_post_meta( $topic_cat_id, FHB_Constants::META_SUBJECT_ID, true );
+            if ( $subject_id ) {
+                update_post_meta( $subject_id, FHB_Constants::META_LAST_ACTIVITY, $now );
+            }
         }
 
         // Queue notifications for this topic (processed by cron).
@@ -313,20 +323,20 @@ class FHB_Ajax {
                     $ordered->the_post();
                 }
 
-                $sid          = get_post_meta( $tid, FHB_Constants::META_SUBJECT_ID, true );
-                $subject_name = $sid ? get_the_title( $sid ) : '';
+                $tc_id      = get_post_meta( $tid, FHB_Constants::META_TOPIC_CAT_ID, true );
+                $topic_name = $tc_id ? get_the_title( $tc_id ) : '';
 
                 $topics[] = array(
-                    'post_id'      => $tid,
-                    'title'        => get_the_title(),
-                    'author_name'  => get_the_author(),
-                    'date'         => get_the_date(),
-                    'reply_count'  => absint( get_post_meta( $tid, FHB_Constants::META_REPLY_COUNT, true ) ),
-                    'is_closed'    => FHB_Constants::is_topic_closed( $tid ),
-                    'snippet'      => $snippet,
-                    'reply_id'     => $reply_id,
-                    'subject_id'   => (int) $sid,
-                    'subject_name' => $subject_name,
+                    'post_id'       => $tid,
+                    'title'         => get_the_title(),
+                    'author_name'   => get_the_author(),
+                    'date'          => get_the_date(),
+                    'reply_count'   => absint( get_post_meta( $tid, FHB_Constants::META_REPLY_COUNT, true ) ),
+                    'is_closed'     => FHB_Constants::is_topic_closed( $tid ),
+                    'snippet'       => $snippet,
+                    'reply_id'      => $reply_id,
+                    'topic_cat_id'  => (int) $tc_id,
+                    'topic_name'    => $topic_name,
                 );
             }
             wp_reset_postdata();

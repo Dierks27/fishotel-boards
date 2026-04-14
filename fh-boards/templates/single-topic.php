@@ -10,11 +10,11 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-$subject_id  = get_post_meta( $topic->ID, FHB_Constants::META_SUBJECT_ID, true );
-$base_url    = remove_query_arg( array( 'fhb_subject', 'fhb_topic', 'fhb_paged' ) );
-$back_url    = $subject_id ? add_query_arg( 'fhb_subject', $subject_id, $base_url ) : $base_url;
-$subject     = $subject_id ? get_post( $subject_id ) : null;
-$back_label  = $subject ? $subject->post_title : 'Boards';
+$topic_cat_id = get_post_meta( $topic->ID, FHB_Constants::META_TOPIC_CAT_ID, true );
+$base_url     = remove_query_arg( array( 'fhb_subject', 'fhb_topic_cat', 'fhb_topic', 'fhb_paged' ) );
+$back_url     = $topic_cat_id ? add_query_arg( 'fhb_topic_cat', $topic_cat_id, $base_url ) : $base_url;
+$topic_cat    = $topic_cat_id ? get_post( $topic_cat_id ) : null;
+$back_label   = $topic_cat ? $topic_cat->post_title : 'Boards';
 ?>
 <div class="fhb-single-topic-wrap">
     <div class="fhb-back-link">
