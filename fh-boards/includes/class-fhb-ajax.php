@@ -183,7 +183,7 @@ class FHB_Ajax {
     }
 
     /* ------------------------------------------------------------------
-     * Search topics.
+     * Search topics (titles, topic content, and reply content).
      * ----------------------------------------------------------------*/
     public static function search() {
         check_ajax_referer( 'fhb_nonce', 'nonce' );
@@ -198,19 +198,88 @@ class FHB_Ajax {
             wp_send_json_error( array( 'message' => 'Query too short.' ) );
         }
 
-        $results = new WP_Query( array(
+        $found_topic_ids = array();
+
+        // 1. Search topic titles and content.
+        $topic_results = new WP_Query( array(
             'post_type'      => 'fhb_topic',
             'post_status'    => 'publish',
             's'              => $query,
             'posts_per_page' => 20,
-            'orderby'        => 'relevance',
+            'fields'         => 'ids',
         ) );
+        foreach ( $topic_results->posts as $tid ) {
+            $found_topic_ids[ $tid ] = true;
+        }
 
-        $topics = array();
-        if ( $results->have_posts() ) {
-            while ( $results->have_posts() ) {
-                $results->the_post();
-                $tid = get_the_ID();
+        // 2. Search reply content and map back to parent topics.
+        $reply_results = new WP_Query( array(
+            'post_type'      => 'fhb_reply',
+            'post_status'    => 'publish',
+            's'              => $query,
+            'posts_per_page' => 50,
+            'fields'         => 'ids',
+        ) );
+        foreach ( $reply_results->posts as $rid ) {
+            $parent_tid = get_post_meta( $rid, '_fhb_topic_id', true );
+            if ( $parent_tid && 'publish' === get_post_status( $parent_tid ) ) {
+                $found_topic_ids[ (int) $parent_tid ] = true;
+            }
+        }
+
+        // Build the response from unique topic IDs.
+        $topic_ids = array_keys( $found_topic_ids );
+        $topics    = array();
+
+        if ( ! empty( $topic_ids ) ) {
+            $ordered = new WP_Query( array(
+                'post_type'      => 'fhb_topic',
+                'post_status'    => 'publish',
+                'post__in'       => $topic_ids,
+                'posts_per_page' => 20,
+                'orderby'        => 'post__in',
+            ) );
+
+            while ( $ordered->have_posts() ) {
+                $ordered->the_post();
+                $tid     = get_the_ID();
+                $snippet = '';
+
+                // Try to find a matching snippet from topic content.
+                $content = get_the_content();
+                $pos     = mb_stripos( $content, $query );
+                if ( false !== $pos ) {
+                    $start   = max( 0, $pos - 40 );
+                    $snippet = mb_substr( strip_tags( $content ), $start, 100 );
+                    if ( $start > 0 ) $snippet = '...' . $snippet;
+                    $snippet = trim( $snippet ) . '...';
+                }
+
+                // If no match in topic content, check replies.
+                if ( empty( $snippet ) ) {
+                    $matching_replies = new WP_Query( array(
+                        'post_type'      => 'fhb_reply',
+                        'post_status'    => 'publish',
+                        's'              => $query,
+                        'posts_per_page' => 1,
+                        'meta_key'       => '_fhb_topic_id',
+                        'meta_value'     => $tid,
+                    ) );
+                    if ( $matching_replies->have_posts() ) {
+                        $matching_replies->the_post();
+                        $reply_text = strip_tags( get_the_content() );
+                        $rpos       = mb_stripos( $reply_text, $query );
+                        if ( false !== $rpos ) {
+                            $start   = max( 0, $rpos - 40 );
+                            $snippet = mb_substr( $reply_text, $start, 100 );
+                            if ( $start > 0 ) $snippet = '...' . $snippet;
+                            $snippet = trim( $snippet ) . '...';
+                        }
+                    }
+                    // Restore outer loop post.
+                    $ordered->the_post();
+                }
+
                 $topics[] = array(
                     'post_id'      => $tid,
                     'title'        => get_the_title(),
@@ -218,6 +287,7 @@ class FHB_Ajax {
                     'date'         => get_the_date(),
                     'reply_count'  => absint( get_post_meta( $tid, '_fhb_reply_count', true ) ),
                     'is_closed'    => get_post_meta( $tid, '_fhb_closed', true ) === '1',
+                    'snippet'      => $snippet,
                 );
             }
             wp_reset_postdata();

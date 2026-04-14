@@ -179,6 +179,13 @@ mark.fhb-highlight {
     border-radius: 2px;
 }
 
+.fhb-search-snippet {
+    font-size: 13px;
+    color: var(--fhb-text-muted);
+    margin: 4px 0 2px;
+    line-height: 1.4;
+}
+
 /* =====================================================================
    Topic List (Board View)
    ===================================================================== */

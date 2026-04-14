@@ -76,6 +76,9 @@
                         html += '<a href="' + fhbBuildTopicUrl(t.post_id) + '">' + fhbHighlight(t.title, query) + '</a>';
                         if (t.is_closed) html += ' <span class="fhb-badge fhb-badge-closed">Closed</span>';
                         html += '</div>';
+                        if (t.snippet) {
+                            html += '<div class="fhb-search-snippet">' + fhbHighlight(t.snippet, query) + '</div>';
+                        }
                         html += '<div class="fhb-topic-meta">';
                         html += '<span class="fhb-topic-author">by ' + $('<span>').text(t.author_name).html() + '</span>';
                         html += '<span class="fhb-topic-replies">' + rc + '</span>';
