@@ -1,59 +1,101 @@
 /**
  * FH Boards – Public styles.
+ *
+ * Dark-theme-native design for the FisHotel charcoal + gold/amber brand.
+ * All colours are defined as custom properties so a theme builder can
+ * override them in a single :root block.
  */
 
-/* Board wrapper */
+/* =====================================================================
+   Custom Properties
+   ===================================================================== */
+:root {
+    --fhb-bg:             transparent;
+    --fhb-surface:        rgba(255, 255, 255, 0.05);
+    --fhb-surface-hover:  rgba(255, 255, 255, 0.08);
+    --fhb-border:         rgba(255, 255, 255, 0.1);
+    --fhb-accent:         #c9a84c;
+    --fhb-accent-hover:   #b8963f;
+    --fhb-text:           #e0e0e0;
+    --fhb-text-muted:     rgba(255, 255, 255, 0.45);
+    --fhb-input-bg:       rgba(0, 0, 0, 0.3);
+    --fhb-success-bg:     rgba(46, 125, 50, 0.2);
+    --fhb-success-text:   #81c784;
+    --fhb-error-bg:       rgba(211, 47, 47, 0.2);
+    --fhb-error-text:     #ef9a9a;
+    --fhb-warning-bg:     rgba(201, 168, 76, 0.15);
+    --fhb-warning-text:   #c9a84c;
+    --fhb-radius:         4px;
+    --fhb-radius-bubble:  12px;
+}
+
+/* =====================================================================
+   Board Wrapper
+   ===================================================================== */
 .fhb-board-wrap,
 .fhb-single-topic-wrap {
     max-width: 800px;
     margin: 0 auto;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+    color: var(--fhb-text);
+    background: var(--fhb-bg);
 }
 
-/* Board header */
+/* =====================================================================
+   Board Header
+   ===================================================================== */
 .fhb-board-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
     padding-bottom: 10px;
-    border-bottom: 2px solid #e0e0e0;
+    border-bottom: 2px solid var(--fhb-accent);
 }
 
 .fhb-board-header h2 {
     margin: 0;
     font-size: 1.5em;
+    color: var(--fhb-text);
 }
 
-/* Buttons */
+/* =====================================================================
+   Buttons
+   ===================================================================== */
 .fhb-btn {
     display: inline-block;
     padding: 8px 16px;
-    background: #0073aa;
-    color: #fff;
+    background: var(--fhb-accent);
+    color: #1a1a1a;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--fhb-radius);
     cursor: pointer;
     font-size: 14px;
+    font-weight: 600;
     text-decoration: none;
     line-height: 1.4;
+    transition: background 0.15s, color 0.15s;
 }
 
 .fhb-btn:hover {
-    background: #005a87;
-    color: #fff;
+    background: var(--fhb-accent-hover);
+    color: #1a1a1a;
 }
 
 .fhb-btn-primary {
-    background: #0073aa;
+    background: var(--fhb-accent);
+    color: #1a1a1a;
 }
 
 .fhb-btn-subscribed {
-    background: #666;
+    background: var(--fhb-surface-hover);
+    color: var(--fhb-text-muted);
+    border: 1px solid var(--fhb-border);
 }
 
 .fhb-btn-subscribed:hover {
-    background: #555;
+    background: var(--fhb-surface);
+    color: var(--fhb-text);
 }
 
 .fhb-btn-small {
@@ -62,24 +104,28 @@
 }
 
 .fhb-btn-yes {
-    background: #46b450;
+    background: var(--fhb-accent);
+    color: #1a1a1a;
     margin-left: 8px;
 }
 
 .fhb-btn-yes:hover {
-    background: #3a9a42;
+    background: var(--fhb-accent-hover);
 }
 
-/* Topic list */
+/* =====================================================================
+   Topic List (Board View)
+   ===================================================================== */
 .fhb-topic-list {
-    border: 1px solid #e0e0e0;
-    border-radius: 4px;
+    border: none;
+    border-radius: 0;
     overflow: hidden;
 }
 
 .fhb-topic-row {
     padding: 14px 18px;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--fhb-border);
+    background: transparent;
     transition: background 0.15s;
 }
 
@@ -88,7 +134,7 @@
 }
 
 .fhb-topic-row:hover {
-    background: #f9f9f9;
+    background: var(--fhb-surface-hover);
 }
 
 .fhb-topic-row.fhb-closed {
@@ -102,24 +148,27 @@
 .fhb-topic-title a {
     font-size: 16px;
     font-weight: 600;
-    color: #1a1a1a;
+    color: var(--fhb-text);
     text-decoration: none;
+    transition: color 0.15s;
 }
 
 .fhb-topic-title a:hover {
-    color: #0073aa;
+    color: var(--fhb-accent);
 }
 
 .fhb-topic-meta {
     font-size: 13px;
-    color: #666;
+    color: var(--fhb-text-muted);
 }
 
 .fhb-topic-meta span {
     margin-right: 14px;
 }
 
-/* Badges */
+/* =====================================================================
+   Badges
+   ===================================================================== */
 .fhb-badge {
     display: inline-block;
     padding: 2px 8px;
@@ -132,47 +181,50 @@
 }
 
 .fhb-badge-closed {
-    background: #dc3232;
-    color: #fff;
+    background: rgba(211, 47, 47, 0.35);
+    color: var(--fhb-error-text);
 }
 
-/* Single topic */
+/* =====================================================================
+   Single Topic – Header & Navigation
+   ===================================================================== */
 .fhb-back-link {
     margin-bottom: 16px;
 }
 
 .fhb-back-link a {
-    color: #0073aa;
+    color: var(--fhb-accent);
     text-decoration: none;
     font-size: 14px;
+    transition: color 0.15s;
 }
 
 .fhb-back-link a:hover {
+    color: var(--fhb-accent-hover);
     text-decoration: underline;
 }
 
 .fhb-topic-header {
     margin-bottom: 20px;
     padding-bottom: 10px;
-    border-bottom: 2px solid #e0e0e0;
+    border-bottom: 2px solid var(--fhb-accent);
 }
 
 .fhb-topic-header h2 {
     margin: 0;
     display: inline;
+    color: var(--fhb-text);
 }
 
-/* Posts (topic & replies) */
+/* =====================================================================
+   Posts – Shared Base
+   ===================================================================== */
 .fhb-post {
     padding: 16px;
     margin-bottom: 12px;
-    border: 1px solid #e8e8e8;
-    border-radius: 4px;
-    background: #fafafa;
-}
-
-.fhb-original-post {
-    border-left: 4px solid #0073aa;
+    border: none;
+    border-radius: var(--fhb-radius);
+    background: var(--fhb-surface);
 }
 
 .fhb-post-author {
@@ -181,33 +233,95 @@
     gap: 10px;
     margin-bottom: 10px;
     font-size: 14px;
+    color: var(--fhb-text);
 }
 
 .fhb-post-author img {
     border-radius: 50%;
 }
 
+.fhb-post-author strong {
+    color: var(--fhb-text);
+}
+
 .fhb-post-date {
-    color: #888;
+    color: var(--fhb-text-muted);
     font-size: 12px;
 }
 
 .fhb-post-content {
     font-size: 15px;
     line-height: 1.6;
-    color: #333;
+    color: var(--fhb-text);
 }
 
 .fhb-post-content p:last-child {
     margin-bottom: 0;
 }
 
-/* Subscribe area */
+/* =====================================================================
+   Original Post – Prominent "lead" message
+   ===================================================================== */
+.fhb-original-post {
+    border-left: 4px solid var(--fhb-accent);
+    padding: 20px;
+    background: var(--fhb-surface);
+}
+
+.fhb-original-post .fhb-post-author strong {
+    color: var(--fhb-accent);
+}
+
+.fhb-original-post .fhb-post-content {
+    font-size: 15px;
+}
+
+/* =====================================================================
+   Reply Posts – Chat-bubble style
+   ===================================================================== */
+.fhb-reply-post {
+    background: var(--fhb-surface-hover);
+    border-radius: var(--fhb-radius-bubble);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    border: none;
+}
+
+.fhb-reply-post .fhb-post-author {
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+
+.fhb-reply-post .fhb-post-author img {
+    width: 36px;
+    height: 36px;
+    border: 2px solid var(--fhb-accent);
+    border-radius: 50%;
+}
+
+.fhb-reply-post .fhb-post-author strong {
+    color: var(--fhb-text);
+}
+
+.fhb-reply-post .fhb-post-date {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--fhb-text-muted);
+}
+
+.fhb-reply-post .fhb-post-content {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* =====================================================================
+   Subscribe Area
+   ===================================================================== */
 .fhb-subscribe-area {
     margin: 20px 0;
     padding: 14px;
-    background: #f5f5f5;
-    border-radius: 4px;
+    background: var(--fhb-surface);
+    border-radius: var(--fhb-radius);
     text-align: center;
 }
 
@@ -219,22 +333,24 @@
 }
 
 .fhb-subscribe-message.fhb-msg-info {
-    background: #fff3cd;
-    color: #856404;
+    background: var(--fhb-warning-bg);
+    color: var(--fhb-warning-text);
 }
 
 .fhb-subscribe-message.fhb-msg-success {
-    background: #d4edda;
-    color: #155724;
+    background: var(--fhb-success-bg);
+    color: var(--fhb-success-text);
 }
 
-/* Forms */
+/* =====================================================================
+   Forms
+   ===================================================================== */
 .fhb-form {
     margin: 20px 0;
     padding: 20px;
-    border: 1px solid #e0e0e0;
-    border-radius: 4px;
-    background: #fff;
+    border: 1px solid var(--fhb-border);
+    border-radius: var(--fhb-radius);
+    background: var(--fhb-surface);
 }
 
 .fhb-form-group {
@@ -246,16 +362,32 @@
     margin-bottom: 4px;
     font-weight: 600;
     font-size: 14px;
+    color: var(--fhb-text);
 }
 
 .fhb-form-group input[type="text"],
 .fhb-form-group textarea {
     width: 100%;
     padding: 8px 12px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    border: 1px solid var(--fhb-border);
+    border-radius: var(--fhb-radius);
     font-size: 14px;
     box-sizing: border-box;
+    background: var(--fhb-input-bg);
+    color: var(--fhb-text);
+    transition: border-color 0.15s;
+}
+
+.fhb-form-group input[type="text"]::placeholder,
+.fhb-form-group textarea::placeholder {
+    color: var(--fhb-text-muted);
+}
+
+.fhb-form-group input[type="text"]:focus,
+.fhb-form-group textarea:focus {
+    outline: none;
+    border-color: var(--fhb-accent);
+    box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.25);
 }
 
 .fhb-form-group textarea {
@@ -275,25 +407,29 @@
 }
 
 .fhb-form-message.fhb-msg-error {
-    background: #f8d7da;
-    color: #721c24;
+    background: var(--fhb-error-bg);
+    color: var(--fhb-error-text);
 }
 
 .fhb-form-message.fhb-msg-success {
-    background: #d4edda;
-    color: #155724;
+    background: var(--fhb-success-bg);
+    color: var(--fhb-success-text);
 }
 
-/* Closed notice */
+/* =====================================================================
+   Closed Notice
+   ===================================================================== */
 .fhb-closed-notice {
     padding: 12px;
-    background: #f8d7da;
-    color: #721c24;
-    border-radius: 4px;
+    background: var(--fhb-error-bg);
+    color: var(--fhb-error-text);
+    border-radius: var(--fhb-radius);
     text-align: center;
 }
 
-/* Pagination */
+/* =====================================================================
+   Pagination
+   ===================================================================== */
 .fhb-pagination {
     margin-top: 20px;
     display: flex;
@@ -301,43 +437,57 @@
     justify-content: center;
 }
 
-/* No topics message */
+/* =====================================================================
+   No Topics Message
+   ===================================================================== */
 .fhb-no-topics {
     text-align: center;
-    color: #888;
+    color: var(--fhb-text-muted);
     padding: 40px 0;
     font-size: 16px;
 }
 
-/* Login required */
+/* =====================================================================
+   Login Required
+   ===================================================================== */
 .fhb-login-required {
     text-align: center;
     padding: 40px 20px;
-    background: #f9f9f9;
-    border: 1px solid #e0e0e0;
-    border-radius: 4px;
+    background: var(--fhb-surface);
+    border: 1px solid var(--fhb-border);
+    border-radius: var(--fhb-radius);
     max-width: 500px;
     margin: 20px auto;
+    color: var(--fhb-text);
 }
 
 .fhb-login-required a {
-    color: #0073aa;
+    color: var(--fhb-accent);
     font-weight: 600;
 }
 
-/* Error */
+.fhb-login-required a:hover {
+    color: var(--fhb-accent-hover);
+}
+
+/* =====================================================================
+   Error
+   ===================================================================== */
 .fhb-error {
-    color: #dc3232;
+    color: var(--fhb-error-text);
     font-weight: 600;
 }
 
-/* New topic toggle cancel */
+/* =====================================================================
+   Cancel Button – Ghost Style
+   ===================================================================== */
 .fhb-new-topic-cancel {
-    background: #ccc;
-    color: #333;
+    background: transparent;
+    color: var(--fhb-text-muted);
+    border: 1px solid var(--fhb-border);
 }
 
 .fhb-new-topic-cancel:hover {
-    background: #bbb;
-    color: #333;
+    background: var(--fhb-surface-hover);
+    color: var(--fhb-text);
 }
