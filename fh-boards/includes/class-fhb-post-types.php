@@ -15,7 +15,7 @@ class FHB_Post_Types {
     }
 
     private static function register_topic() {
-        register_post_type( 'fhb_topic', array(
+        register_post_type( FHB_Constants::POST_TYPE_TOPIC, array(
             'labels' => array(
                 'name'               => 'Topics',
                 'singular_name'      => 'Topic',
@@ -37,7 +37,7 @@ class FHB_Post_Types {
     }
 
     private static function register_reply() {
-        register_post_type( 'fhb_reply', array(
+        register_post_type( FHB_Constants::POST_TYPE_REPLY, array(
             'labels' => array(
                 'name'               => 'Replies',
                 'singular_name'      => 'Reply',

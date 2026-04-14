@@ -8,6 +8,45 @@
     'use strict';
 
     /* ------------------------------------------------------------------
+     * Shared helpers
+     * ----------------------------------------------------------------*/
+
+    /**
+     * Show a status message with a given type class.
+     *
+     * @param {jQuery} $el   Message element.
+     * @param {string} type  'success', 'error', or 'info'.
+     * @param {string} text  Message text (or HTML when using .html()).
+     */
+    function fhbShowMsg($el, type, text) {
+        $el.removeClass('fhb-msg-success fhb-msg-error fhb-msg-info')
+            .addClass('fhb-msg-' + type).text(text).show();
+    }
+
+    /**
+     * Toggle a button's disabled state and label.
+     */
+    function fhbSetBtn($btn, disabled, text) {
+        $btn.prop('disabled', disabled).text(text);
+    }
+
+    /**
+     * Convert displayed post HTML back to plain text for editing.
+     */
+    function fhbHtmlToText(html) {
+        return html
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
+            .replace(/<[^>]+>/g, '')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#0?39;/g, "'")
+            .trim();
+    }
+
+    /* ------------------------------------------------------------------
      * Topic Search (AJAX, debounced)
      * ----------------------------------------------------------------*/
     var fhbSearchTimer = null;
@@ -123,7 +162,7 @@
         var $msg  = $form.find('.fhb-form-message');
         var $btn  = $form.find('button[type="submit"]');
 
-        $btn.prop('disabled', true).text('Posting…');
+        fhbSetBtn($btn, true, 'Posting\u2026');
 
         $.post(fhb_ajax.ajax_url, {
             action:        'fhb_new_topic',
@@ -132,21 +171,15 @@
             topic_content: $form.find('[name="topic_content"]').val()
         }, function (res) {
             if (res.success) {
-                $msg.removeClass('fhb-msg-error').addClass('fhb-msg-success')
-                    .text(res.data.message).show();
-                // Reload to show the new topic.
-                setTimeout(function () {
-                    location.reload();
-                }, 800);
+                fhbShowMsg($msg, 'success', res.data.message);
+                setTimeout(function () { location.reload(); }, 800);
             } else {
-                $msg.removeClass('fhb-msg-success').addClass('fhb-msg-error')
-                    .text(res.data.message).show();
-                $btn.prop('disabled', false).text('Post Topic');
+                fhbShowMsg($msg, 'error', res.data.message);
+                fhbSetBtn($btn, false, 'Post Topic');
             }
         }).fail(function () {
-            $msg.removeClass('fhb-msg-success').addClass('fhb-msg-error')
-                .text('An error occurred. Please try again.').show();
-            $btn.prop('disabled', false).text('Post Topic');
+            fhbShowMsg($msg, 'error', 'An error occurred. Please try again.');
+            fhbSetBtn($btn, false, 'Post Topic');
         });
     });
 
@@ -160,7 +193,7 @@
         var $msg  = $form.find('.fhb-form-message');
         var $btn  = $form.find('button[type="submit"]');
 
-        $btn.prop('disabled', true).text('Posting…');
+        fhbSetBtn($btn, true, 'Posting\u2026');
 
         $.post(fhb_ajax.ajax_url, {
             action:        'fhb_new_reply',
@@ -177,26 +210,21 @@
                     $('.fhb-subscribe-area').before('<div class="fhb-replies">' + res.data.html + '</div>');
                 }
                 $form.find('textarea').val('');
-                $msg.removeClass('fhb-msg-error').addClass('fhb-msg-success')
-                    .text(res.data.message).show();
-                $btn.prop('disabled', false).text('Post Reply');
+                fhbShowMsg($msg, 'success', res.data.message);
+                fhbSetBtn($btn, false, 'Post Reply');
                 // Scroll to the new reply.
                 $('html, body').animate({
                     scrollTop: $('.fhb-reply-post:last').offset().top - 50
                 }, 400);
                 // Hide success message after a moment.
-                setTimeout(function () {
-                    $msg.fadeOut(300);
-                }, 3000);
+                setTimeout(function () { $msg.fadeOut(300); }, 3000);
             } else {
-                $msg.removeClass('fhb-msg-success').addClass('fhb-msg-error')
-                    .text(res.data.message).show();
-                $btn.prop('disabled', false).text('Post Reply');
+                fhbShowMsg($msg, 'error', res.data.message);
+                fhbSetBtn($btn, false, 'Post Reply');
             }
         }).fail(function () {
-            $msg.removeClass('fhb-msg-success').addClass('fhb-msg-error')
-                .text('An error occurred. Please try again.').show();
-            $btn.prop('disabled', false).text('Post Reply');
+            fhbShowMsg($msg, 'error', 'An error occurred. Please try again.');
+            fhbSetBtn($btn, false, 'Post Reply');
         });
     });
 
@@ -218,8 +246,7 @@
             topic_id: topicId
         }, function (res) {
             if (res.success) {
-                $msg.removeClass('fhb-msg-info').addClass('fhb-msg-success')
-                    .text(res.data.message).show();
+                fhbShowMsg($msg, 'success', res.data.message);
 
                 // Toggle button state.
                 if (action === 'subscribe') {
@@ -235,20 +262,18 @@
             } else {
                 // Check if the user needs to opt in.
                 if (res.data && res.data.needs_opt_in) {
-                    $msg.removeClass('fhb-msg-success').addClass('fhb-msg-info')
+                    $msg.removeClass('fhb-msg-success fhb-msg-error').addClass('fhb-msg-info')
                         .html(
                             res.data.message +
                             ' <button class="fhb-btn fhb-btn-small fhb-btn-yes fhb-enable-notifs-btn">Yes</button>'
                         ).show();
-                    $btn.prop('disabled', false);
                 } else {
-                    $msg.removeClass('fhb-msg-success').addClass('fhb-msg-info')
-                        .text(res.data.message).show();
-                    $btn.prop('disabled', false);
+                    fhbShowMsg($msg, 'info', res.data.message);
                 }
+                $btn.prop('disabled', false);
             }
         }).fail(function () {
-            $msg.text('An error occurred.').addClass('fhb-msg-info').show();
+            fhbShowMsg($msg, 'info', 'An error occurred.');
             $btn.prop('disabled', false);
         });
     });
@@ -262,16 +287,7 @@
         var $actions = $post.find('.fhb-post-actions');
 
         // Convert displayed HTML back to plain text for the textarea.
-        var raw = $content.html()
-            .replace(/<br\s*\/?>/gi, '\n')
-            .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
-            .replace(/<[^>]+>/g, '')
-            .replace(/&amp;/g, '&')
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>')
-            .replace(/&quot;/g, '"')
-            .replace(/&#0?39;/g, "'")
-            .trim();
+        var raw = fhbHtmlToText($content.html());
 
         // Store original HTML so Cancel can restore it.
         $content.data('original-html', $content.html());
@@ -308,7 +324,7 @@
         var postId   = $post.data('post-id');
         var newText  = $content.find('.fhb-edit-textarea').val();
 
-        $btn.prop('disabled', true).text('Saving…');
+        fhbSetBtn($btn, true, 'Saving\u2026');
 
         $.post(fhb_ajax.ajax_url, {
             action:  'fhb_edit_post',
@@ -328,11 +344,11 @@
                 $actions.html($actions.data('original-html'));
             } else {
                 alert(res.data.message);
-                $btn.prop('disabled', false).text('Save');
+                fhbSetBtn($btn, false, 'Save');
             }
         }).fail(function () {
             alert('An error occurred. Please try again.');
-            $btn.prop('disabled', false).text('Save');
+            fhbSetBtn($btn, false, 'Save');
         });
     });
 
@@ -346,7 +362,7 @@
         var $subBtn    = $area.find('.fhb-subscribe-btn');
         var topicId    = $area.data('topic-id');
 
-        $enableBtn.prop('disabled', true).text('Enabling…');
+        fhbSetBtn($enableBtn, true, 'Enabling\u2026');
 
         $.post(fhb_ajax.ajax_url, {
             action:   'fhb_enable_notifications',
@@ -354,16 +370,15 @@
             topic_id: topicId
         }, function (res) {
             if (res.success) {
-                $msg.removeClass('fhb-msg-info').addClass('fhb-msg-success')
-                    .text(res.data.message).show();
+                fhbShowMsg($msg, 'success', res.data.message);
                 $subBtn.text('Unsubscribe from Notifications')
                     .data('action', 'unsubscribe')
                     .addClass('fhb-btn-subscribed');
             } else {
-                $msg.text(res.data.message).show();
+                fhbShowMsg($msg, 'info', res.data.message);
             }
         }).fail(function () {
-            $msg.text('An error occurred.').show();
+            fhbShowMsg($msg, 'info', 'An error occurred.');
         });
     });
 

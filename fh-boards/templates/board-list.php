@@ -31,9 +31,9 @@ if ( ! defined( 'ABSPATH' ) ) {
             <?php while ( $topics->have_posts() ) : $topics->the_post(); ?>
                 <?php
                 $topic_id     = get_the_ID();
-                $reply_count  = absint( get_post_meta( $topic_id, '_fhb_reply_count', true ) );
-                $last_activity = get_post_meta( $topic_id, '_fhb_last_activity', true );
-                $is_closed    = get_post_meta( $topic_id, '_fhb_closed', true ) === '1';
+                $reply_count  = absint( get_post_meta( $topic_id, FHB_Constants::META_REPLY_COUNT, true ) );
+                $last_activity = get_post_meta( $topic_id, FHB_Constants::META_LAST_ACTIVITY, true );
+                $is_closed    = FHB_Constants::is_topic_closed( $topic_id );
                 $author       = get_the_author();
                 $board_url    = remove_query_arg( 'fhb_topic' );
                 $topic_url    = add_query_arg( 'fhb_topic', $topic_id, $board_url );
