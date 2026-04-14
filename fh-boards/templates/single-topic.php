@@ -43,7 +43,7 @@ $board_url = remove_query_arg( array( 'fhb_topic', 'fhb_paged' ) );
                 <div class="fhb-post fhb-reply-post" data-post-id="<?php echo esc_attr( get_the_ID() ); ?>">
                     <div class="fhb-post-author">
                         <?php echo get_avatar( get_the_author_meta( 'ID' ), 40 ); ?>
-                        <strong><?php echo esc_html( get_the_author() ); ?></strong>
+                        <strong data-initial="<?php echo esc_attr( mb_strtoupper( mb_substr( get_the_author(), 0, 1 ) ) ); ?>"><?php echo esc_html( get_the_author() ); ?></strong>
                         <span class="fhb-post-date"><?php echo esc_html( get_the_date() ); ?> at <?php echo esc_html( get_the_time() ); ?></span>
                     </div>
                     <div class="fhb-post-content">

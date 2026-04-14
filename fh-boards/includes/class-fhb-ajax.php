@@ -117,7 +117,7 @@ class FHB_Ajax {
 
         $html  = '<div class="fhb-post fhb-reply-post" data-post-id="' . esc_attr( $reply_id ) . '">';
         $html .= '<div class="fhb-post-author">' . $avatar;
-        $html .= '<strong>' . esc_html( $author_name ) . '</strong>';
+        $html .= '<strong data-initial="' . esc_attr( mb_strtoupper( mb_substr( $author_name, 0, 1 ) ) ) . '">' . esc_html( $author_name ) . '</strong>';
         $html .= '<span class="fhb-post-date">' . esc_html( $date ) . ' at ' . esc_html( $time ) . '</span>';
         $html .= '</div>';
         $html .= '<div class="fhb-post-content">' . wp_kses_post( wpautop( $content ) ) . '</div>';

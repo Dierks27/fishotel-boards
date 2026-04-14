@@ -148,7 +148,7 @@
 .fhb-topic-title a {
     font-size: 16px;
     font-weight: 600;
-    color: var(--fhb-text);
+    color: #d4d4d4;
     text-decoration: none;
     transition: color 0.15s;
 }
@@ -159,7 +159,7 @@
 
 .fhb-topic-meta {
     font-size: 13px;
-    color: var(--fhb-text-muted);
+    color: rgba(255, 255, 255, 0.5);
 }
 
 .fhb-topic-meta span {
@@ -280,11 +280,11 @@
    Reply Posts – Chat-bubble style
    ===================================================================== */
 .fhb-reply-post {
-    background: var(--fhb-surface-hover);
+    background: rgba(255, 255, 255, 0.11);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: var(--fhb-radius-bubble);
     padding: 14px 16px;
     margin-bottom: 10px;
-    border: none;
 }
 
 .fhb-reply-post .fhb-post-author {
@@ -293,14 +293,27 @@
 }
 
 .fhb-reply-post .fhb-post-author img {
-    width: 36px;
-    height: 36px;
-    border: 2px solid var(--fhb-accent);
-    border-radius: 50%;
+    display: none;
 }
 
 .fhb-reply-post .fhb-post-author strong {
     color: var(--fhb-text);
+}
+
+.fhb-reply-post .fhb-post-author strong::before {
+    content: attr(data-initial);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 50%;
+    background: var(--fhb-accent);
+    color: #1a1a1a;
+    font-size: 15px;
+    font-weight: 700;
+    margin-right: 10px;
 }
 
 .fhb-reply-post .fhb-post-date {
@@ -320,8 +333,8 @@
 .fhb-subscribe-area {
     margin: 20px 0;
     padding: 14px;
-    background: var(--fhb-surface);
-    border-radius: var(--fhb-radius);
+    background: transparent;
+    border: none;
     text-align: center;
 }
 
