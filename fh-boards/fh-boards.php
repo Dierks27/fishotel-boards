@@ -2,7 +2,7 @@
 /**
  * Plugin Name: FH Boards
  * Description: A lightweight private beta tester forum for FisHotel.
- * Version:     1.2.1
+ * Version:     1.3.0
  * Author:      FisHotel
  * Text Domain: fh-boards
  */
@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'FHB_VERSION', '1.2.1' );
+define( 'FHB_VERSION', '1.3.0' );
 define( 'FHB_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FHB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
@@ -24,6 +24,7 @@ require_once FHB_PLUGIN_DIR . 'includes/class-fhb-shortcode.php';
 require_once FHB_PLUGIN_DIR . 'includes/class-fhb-ajax.php';
 require_once FHB_PLUGIN_DIR . 'includes/class-fhb-notifications.php';
 require_once FHB_PLUGIN_DIR . 'includes/class-fhb-user-profile.php';
+require_once FHB_PLUGIN_DIR . 'includes/class-fhb-updater.php';
 
 if ( is_admin() ) {
     require_once FHB_PLUGIN_DIR . 'admin/class-fhb-admin.php';
@@ -47,6 +48,7 @@ function fhb_init() {
 
     if ( is_admin() ) {
         FHB_Admin::init();
+        FHB_Updater::init();
     }
 }
 add_action( 'init', 'fhb_init' );
