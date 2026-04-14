@@ -74,6 +74,23 @@ class FHB_Updater {
     }
 
     /**
+     * Get the best download URL for a release.
+     *
+     * Prefers a pre-built zip asset named fh-boards*.zip over the
+     * GitHub source zipball (which requires directory renaming).
+     */
+    private static function get_download_url( $release ) {
+        if ( ! empty( $release['assets'] ) ) {
+            foreach ( $release['assets'] as $asset ) {
+                if ( preg_match( '/^fh-boards.*\.zip$/i', $asset['name'] ) ) {
+                    return $asset['browser_download_url'];
+                }
+            }
+        }
+        return $release['zipball_url'];
+    }
+
+    /**
      * Inject update information into the WordPress update transient.
      */
     public static function check_update( $transient ) {
@@ -89,23 +106,11 @@ class FHB_Updater {
         $remote_version = self::tag_to_version( $release['tag_name'] );
 
         if ( version_compare( FHB_VERSION, $remote_version, '<' ) ) {
-            $download_url = $release['zipball_url'];
-
-            // Prefer a pre-built zip asset named fh-boards-*.zip if attached.
-            if ( ! empty( $release['assets'] ) ) {
-                foreach ( $release['assets'] as $asset ) {
-                    if ( preg_match( '/^fh-boards.*\.zip$/i', $asset['name'] ) ) {
-                        $download_url = $asset['browser_download_url'];
-                        break;
-                    }
-                }
-            }
-
             $transient->response[ self::$plugin_basename ] = (object) array(
                 'slug'        => self::$slug,
                 'plugin'      => self::$plugin_basename,
                 'new_version' => $remote_version,
-                'package'     => $download_url,
+                'package'     => self::get_download_url( $release ),
                 'url'         => 'https://github.com/' . self::$repo,
             );
         }
@@ -134,7 +139,7 @@ class FHB_Updater {
             'version'       => $remote_version,
             'author'        => '<a href="https://github.com/' . self::$repo . '">FisHotel</a>',
             'homepage'      => 'https://github.com/' . self::$repo,
-            'download_link' => $release['zipball_url'],
+            'download_link' => self::get_download_url( $release ),
             'sections'      => array(
                 'description' => 'A lightweight private beta tester forum for FisHotel.',
                 'changelog'   => nl2br( esc_html( $release['body'] ?? '' ) ),
