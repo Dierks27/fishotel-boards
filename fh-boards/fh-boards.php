@@ -76,6 +76,17 @@ function fhb_enqueue_public_assets() {
 add_action( 'wp_enqueue_scripts', 'fhb_enqueue_public_assets' );
 
 /* ------------------------------------------------------------------
+ * Plugin row meta – "Check for Updates" link on Plugins page
+ * ----------------------------------------------------------------*/
+function fhb_plugin_row_meta( $links, $file ) {
+    if ( plugin_basename( __FILE__ ) === $file ) {
+        $links[] = '<a href="' . esc_url( self_admin_url( 'update-core.php?force-check=1' ) ) . '">' . esc_html__( 'Check for Updates', 'fh-boards' ) . '</a>';
+    }
+    return $links;
+}
+add_filter( 'plugin_row_meta', 'fhb_plugin_row_meta', 10, 2 );
+
+/* ------------------------------------------------------------------
  * Enqueue admin assets
  * ----------------------------------------------------------------*/
 function fhb_enqueue_admin_assets( $hook ) {
