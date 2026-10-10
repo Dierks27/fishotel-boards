@@ -27,6 +27,14 @@ class FHB_Shortcode {
             return ob_get_clean();
         }
 
+        // WHY (boards-smtp-wpit-20): opt-in tester gate (FH Boards > Settings >
+        // Tester Access). Blank setting (default) allows every logged-in user,
+        // exactly as before; the same check runs in FHB_Ajax::verify_request().
+        if ( ! FHB_Constants::user_can_access() ) {
+            include FHB_PLUGIN_DIR . 'templates/access-denied.php';
+            return ob_get_clean();
+        }
+
         $topic_id     = isset( $_GET['fhb_topic'] ) ? absint( $_GET['fhb_topic'] ) : 0;
         $topic_cat_id = isset( $_GET['fhb_topic_cat'] ) ? absint( $_GET['fhb_topic_cat'] ) : 0;
         $subject_id   = isset( $_GET['fhb_subject'] ) ? absint( $_GET['fhb_subject'] ) : 0;

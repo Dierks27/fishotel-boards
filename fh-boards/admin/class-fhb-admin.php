@@ -340,6 +340,14 @@ class FHB_Admin {
             'default'           => false,
             'sanitize_callback' => 'rest_sanitize_boolean',
         ) );
+
+        // WHY (boards-smtp-wpit-20): opt-in tester gate. A capability or role
+        // slug; blank (default) = any logged-in user, which is today's behaviour.
+        register_setting( 'fhb_settings', FHB_Constants::OPTION_REQUIRED_CAP, array(
+            'type'              => 'string',
+            'default'           => '',
+            'sanitize_callback' => 'sanitize_key',
+        ) );
     }
 
     /* ------------------------------------------------------------------

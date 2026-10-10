@@ -40,6 +40,10 @@ class FHB_Constants {
     // Capability.
     const ADMIN_CAP = 'manage_options';
 
+    // Option: capability or role slug required to use the front-end boards.
+    // Blank (the default) keeps today's behaviour: any logged-in user.
+    const OPTION_REQUIRED_CAP = 'fhb_required_capability';
+
     // Cron hook.
     const CRON_HOOK = 'fhb_process_notifications';
 
@@ -81,5 +85,46 @@ class FHB_Constants {
         }
         return (int) $post->post_author === get_current_user_id()
             || current_user_can( self::ADMIN_CAP );
+    }
+
+    /**
+     * Check whether a user may view and post on the front-end boards.
+     *
+     * WHY (boards-smtp-wpit-20): the forum used to be open to every logged-in
+     * account, i.e. every WooCommerce customer. Jeff can opt in to restricting
+     * it via FH Boards > Settings > Tester Access. The value may be a
+     * capability (e.g. 'edit_posts') or a role slug (e.g. 'fhb_beta_tester').
+     * With the setting blank this returns true for any logged-in user,
+     * exactly as before. Administrators are never locked out.
+     *
+     * @param int $user_id Optional user ID; defaults to the current user.
+     * @return bool
+     */
+    public static function user_can_access( $user_id = 0 ) {
+        $user_id  = $user_id ? (int) $user_id : get_current_user_id();
+        $required = trim( (string) get_option( self::OPTION_REQUIRED_CAP, '' ) );
+        $allowed  = false;
+
+        if ( $user_id ) {
+            if ( '' === $required ) {
+                $allowed = true;
+            } else {
+                $user    = get_userdata( $user_id );
+                $allowed = $user && (
+                    user_can( $user, $required )
+                    || in_array( $required, (array) $user->roles, true )
+                    || user_can( $user, self::ADMIN_CAP )
+                );
+            }
+        }
+
+        /**
+         * Filter whether a user may access the boards.
+         *
+         * @param bool   $allowed  Computed result.
+         * @param int    $user_id  User being checked (0 = not logged in).
+         * @param string $required Configured capability/role slug ('' = none).
+         */
+        return (bool) apply_filters( 'fhb_user_can_access', $allowed, $user_id, $required );
     }
 }
