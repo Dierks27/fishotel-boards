@@ -33,6 +33,14 @@ class FHB_Ajax {
         if ( ! is_user_logged_in() ) {
             wp_send_json_error( array( 'message' => 'You must be logged in.' ) );
         }
+
+        // WHY (boards-smtp-wpit-20): opt-in tester gate. Every handler goes
+        // through verify_request(), so this one check covers all AJAX actions.
+        // With the setting blank (the default) it never fails for a logged-in
+        // user, so default behaviour is unchanged.
+        if ( ! FHB_Constants::user_can_access() ) {
+            wp_send_json_error( array( 'message' => 'The FisHotel Boards are open to beta testers only.' ) );
+        }
     }
 
     /**
@@ -318,23 +326,27 @@ class FHB_Ajax {
                         'meta_key'       => FHB_Constants::META_TOPIC_ID,
                         'meta_value'     => $tid,
                     ) );
-                    if ( $matching_replies->have_posts() ) {
-                        $matching_replies->the_post();
-                        $reply_id = get_the_ID();
-                        $snippet  = self::extract_snippet( get_the_content(), $query );
+                    // WHY (boards-smtp-wpit-19): read the reply straight off the
+                    // query object instead of calling the_post(). The old
+                    // "restore" call ($ordered->the_post()) actually ADVANCED
+                    // the outer loop, so the row showed the next thread's
+                    // title/author/date and that thread was then skipped.
+                    if ( ! empty( $matching_replies->posts ) ) {
+                        $reply    = $matching_replies->posts[0];
+                        $reply_id = (int) $reply->ID;
+                        $snippet  = self::extract_snippet( $reply->post_content, $query );
                     }
-                    // Restore outer loop post.
-                    $ordered->the_post();
                 }
 
                 $tc_id      = get_post_meta( $tid, FHB_Constants::META_TOPIC_CAT_ID, true );
                 $topic_name = $tc_id ? get_the_title( $tc_id ) : '';
 
+                // Key every field on $tid so the row cannot drift from post_id.
                 $topics[] = array(
                     'post_id'       => $tid,
-                    'title'         => get_the_title(),
-                    'author_name'   => get_the_author(),
-                    'date'          => get_the_date(),
+                    'title'         => get_the_title( $tid ),
+                    'author_name'   => get_the_author_meta( 'display_name', (int) get_post_field( 'post_author', $tid ) ),
+                    'date'          => get_the_date( '', $tid ),
                     'reply_count'   => absint( get_post_meta( $tid, FHB_Constants::META_REPLY_COUNT, true ) ),
                     'is_closed'     => FHB_Constants::is_topic_closed( $tid ),
                     'snippet'       => $snippet,

@@ -71,6 +71,7 @@ if ( $delete_data ) {
     // Remove plugin options.
     delete_option( 'fhb_db_version' );
     delete_option( 'fhb_delete_data_on_uninstall' );
+    delete_option( FHB_Constants::OPTION_REQUIRED_CAP );
 }
 
 // Always unschedule cron.
